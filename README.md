@@ -1,2 +1,2 @@
 # WandX-Options
-It Facilitate the trading of ERC20 token in the futures and options
+Creation and trade of ERC20 Token Call Options.
