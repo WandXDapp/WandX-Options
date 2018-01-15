@@ -22,6 +22,7 @@ contract Option is IOption, IERC20 {
     uint256 public optionsOffered;
     uint256 public premium;
     uint256 public expiry;
+    bool public isOptionIssued = false;
 
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
@@ -29,6 +30,15 @@ contract Option is IOption, IERC20 {
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
+    event LogOptionsTrade(address indexed _trader, uint256 _amount, uint256 _timestamp);
+    event LogOptionsExcercised(address indexed _trader, uint256 _currentPrice, uint256 _amount, uint256 _timestamp);
+
+    struct traderData {
+        uint256 optionQuantity;
+        bool status;                        // false when it doesn't excercise the full option Quantity, True when fully excercised 
+    }
+
+    mapping(address => traderData) public Traders;
 
 // Constructor
     function Option( 
@@ -51,34 +61,58 @@ contract Option is IOption, IERC20 {
         QT = IERC20(quoteToken);
     }
 
-    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) {
+    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public {
+        require(isOptionIssued == false);
         require(msg.sender == writer);
         require(_premium > 0);
         require(expirationDate >= _expiry);
-        tokenProxy = new Proxy(baseToken, quoteToken);
+        tokenProxy = new Proxy(baseToken, quoteToken, _expiry);
         // Allowance for the option contract is necessary allowed[writer][this] = _optionsOffered
         require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
+        balances[this] = _optionsOffered;
         optionsOffered = _optionsOffered;
         premium = _premium;
         expiry = _expiry;
+        isOptionIssued = !isOptionIssued;
         LogOptionsIssued(optionsOffered, expiry, premium);
     }
 
-    function incOffering(uint256 _extraOffering) {
+    function incOffering(uint256 _extraOffering) public {
         require(msg.sender == writer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[writer][this] = _extraOffering
         require(BT.transferFrom(writer,tokenProxy,_extraOffering));
         optionsOffered = optionsOffered.add(_extraOffering);
+        balances[this] = balances[this].add(_extraOffering);
         LogOptionsIssued(optionsOffered, expiry, premium);
     }
 
-    function setOptionBehaviour(uint8 _behaviour) public returns (bool) {
-        //
-    }  
+    function tradeOption(address _trader, uint256 _amount) public returns(bool) {
+        require(_amount > 0);
+        require(_trader != address(0));
+        require(expiry > now);
+        require(QT.transferFrom(_trader, tokenProxy, _amount * premium));
+        require(this.transfer(_trader,_amount));
+        Traders[_trader] = traderData(_amount,false);
+        LogOptionsTrade(_trader, _amount, now);
+    }
     
-    function exerciseOption() public returns (bool) {
-        //
+    function exerciseOption(address _trader, uint256 _amount, uint256 _currentPrice) external returns (bool) {
+        require(_amount > 0);
+        require(_trader != address(0));
+        require(expiry >= now);
+        uint256 profit;
+        if (_currentPrice > strikePrice) {
+            profit = 0;
+        } else {
+            profit = strikePrice.sub(_currentPrice);
+        }
+        require(Traders[_trader].optionQuantity >= _amount);
+        // Provide allowance to this by the trader
+        require(this.transferFrom(_trader,0x0,_amount));
+        require(tokenProxy.distributeStakes(_trader, profit)); 
+        Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
+        LogOptionsExcercised(_trader, _currentPrice, _amount, now);
     }
 
      /* @dev send `_value` token to `_to` from `msg.sender`
