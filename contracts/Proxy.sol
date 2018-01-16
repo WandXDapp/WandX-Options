@@ -17,11 +17,12 @@ contract Proxy {
         optionsExpiry = _expiry;
     }
 
-    function distributeStakes(address _to, uint256 _profit) public returns(bool) {
+    function distributeStakes(address _to, uint256 _profit, uint256 _amount, address _creator) public returns(bool) {
         require(msg.sender == owner);
         if (_profit > 0) {
-            QT.transfer(_to,_profit);
+            require(QT.transfer(_to,_profit));
         }
+        require(BT.transfer(_creator, _amount));
         return true; 
     } 
 

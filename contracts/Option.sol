@@ -141,7 +141,7 @@ contract Option is IOption, IERC20 {
         require(Traders[_trader].optionQuantity >= _amount);
         // Provide allowance to this by the trader
         require(this.transferFrom(_trader,0x0,_amount));
-        require(tokenProxy.distributeStakes(_trader, profit)); 
+        require(tokenProxy.distributeStakes(_trader, profit, _amount, writer)); 
         Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
         LogOptionsExcercised(_trader, _currentPrice, _amount, now);
     }

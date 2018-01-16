@@ -38,9 +38,9 @@ contract DerivativeFactory is IDerivativeFactory {
         listOfOptions[optionAddress] = OptionsData(false,_expirationDate,msg.sender);
     }
 
-// function to add the new clones of the options before the expiration time
-    function generateCloneOption(address _optionAddress, uint256 _number) public returns (bool){
+// // function to add the new clones of the options before the expiration time
+//     function generateCloneOption(address _optionAddress, uint256 _number) public returns (bool){
 
-    }
+//     }
 
 }
