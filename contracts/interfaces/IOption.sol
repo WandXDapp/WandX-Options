@@ -5,6 +5,6 @@ import './IERC20.sol';
 interface IOption {
 
     // function to complete the option
-    function exerciseOption(address _trader, uint256 _amount, uint256 _currentPrice) external returns (bool);
+    function exerciseOption(address _trader, uint256 _amount) external returns (bool);
 
 } 

@@ -14,7 +14,7 @@ contract DerivativeFactory is IDerivativeFactory {
 
     struct OptionsData {
         bool expiryStatus;
-        uint256 expirationDate;
+        uint256 expirationDate;  // Block No.
         address owner;
     } 
 

@@ -8,31 +8,38 @@ contract Proxy {
     IERC20 public QT;
 
     address public owner;
+    address public buyer;
     uint256 public optionsExpiry;
+    uint256 public strikePrice;
 
-    function Proxy(address _baseToken, address _quoteToken, uint256 _expiry) public {
+    modifier onlyOption() {
+        require(msg.sender == owner);
+        _;
+    }
+
+    function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer) public {
         owner = msg.sender;
         BT = IERC20(_baseToken);
         QT = IERC20(_quoteToken); 
         optionsExpiry = _expiry;
+        strikePrice = _strikePrice;
+        buyer = _buyer;
     }
 
-    function distributeStakes(address _to, uint256 _profit, uint256 _amount, address _creator) public returns(bool) {
+    function distributeStakes(address _to, uint256 _amount) onlyOption public returns(bool) {
         require(msg.sender == owner);
-        if (_profit > 0) {
-            require(QT.transfer(_to,_profit));
-        }
-        require(BT.transfer(_creator, _amount));
+        require(QT.transfer(_to, strikePrice));
+        require(QT.transferFrom(_to, buyer, _amount));
         return true; 
     } 
 
-    function withdrawal(address _creator) public returns (bool) {
+    function withdrawal() onlyOption public returns (bool) {
         require(msg.sender == owner);
         require(now > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
-        require(BT.transfer(_creator, balanceBT));
-        require(QT.transfer(_creator, balanceQT));
+        require(BT.transfer(buyer, balanceBT));
+        require(QT.transfer(buyer, balanceQT));
         return true;
     }
 

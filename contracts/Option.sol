@@ -13,7 +13,7 @@ contract Option is IOption, IERC20 {
     IERC20 public QT;
     Proxy private tokenProxy;
 
-    address public writer;
+    address public buyer;
     address public baseToken;
     address public quoteToken;
     uint256 public strikePrice;
@@ -31,7 +31,7 @@ contract Option is IOption, IERC20 {
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
     event LogOptionsTrade(address indexed _trader, uint256 _amount, uint256 _timestamp);
-    event LogOptionsExcercised(address indexed _trader, uint256 _currentPrice, uint256 _amount, uint256 _timestamp);
+    event LogOptionsExcercised(address indexed _trader, uint256 _amount, uint256 _timestamp);
 
     struct traderData {
         uint256 optionQuantity;
@@ -49,13 +49,13 @@ contract Option is IOption, IERC20 {
         address _quoteToken, 
         uint256 _strikePrice,
         uint256 _expirationDate,
-        address _writer
+        address _buyer
         ) public 
     {
-        require(_writer != address(0) && _quoteToken != address(0) && _baseToken != address(0));
+        require(_buyer != address(0) && _quoteToken != address(0) && _baseToken != address(0));
         require(_expirationDate > now);
         require(strikePrice > 0);
-        writer = _writer;
+        buyer = _buyer;
         baseToken = _baseToken;
         quoteToken = _quoteToken;
         strikePrice = _strikePrice;
@@ -74,12 +74,12 @@ contract Option is IOption, IERC20 {
 
     function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public {
         require(isOptionIssued == false);
-        require(msg.sender == writer);
+        require(msg.sender == buyer);
         require(_premium > 0);
         require(expirationDate >= _expiry);
-        tokenProxy = new Proxy(baseToken, quoteToken, _expiry);
-        // Allowance for the option contract is necessary allowed[writer][this] = _optionsOffered
-        require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
+        tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
+        // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
+       // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
         balances[this] = _optionsOffered;
         optionsOffered = _optionsOffered;
         premium = _premium;
@@ -94,10 +94,10 @@ contract Option is IOption, IERC20 {
      */
 
     function incOffering(uint256 _extraOffering) public {
-        require(msg.sender == writer);
+        require(msg.sender == buyer);
         require(expiry > now);
-        // Allowance for the option contract is necessary allowed[writer][this] = _extraOffering
-        require(BT.transferFrom(writer,tokenProxy,_extraOffering));
+        // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
+        require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
         optionsOffered = optionsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         LogOptionsIssued(optionsOffered, expiry, premium);
@@ -124,26 +124,21 @@ contract Option is IOption, IERC20 {
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
      * @param _trader Address of the holder of the option
      * @param _amount no. of option trader want to exercise
-     * @param _currentPrice price of the baseToken current in the market
      * @return bool
      */
 
-    function exerciseOption(address _trader, uint256 _amount, uint256 _currentPrice) external returns (bool) {
+    function exerciseOption(address _trader, uint256 _amount) external returns (bool) {
         require(_amount > 0);
         require(_trader != address(0));
-        require(expiry >= now);
-        uint256 profit;
-        if (_currentPrice > strikePrice) {
-            profit = 0;
-        } else {
-            profit = strikePrice.sub(_currentPrice);
-        }
-        require(Traders[_trader].optionQuantity >= _amount);
+        require(expiry >= now);      
+        require(this.balanceOf(_trader) >= _amount);
+        require(BT.allowance(tokenProxy, _trader) >= _amount);
+        require(QT.balanceOf(tokenProxy) >= _amount);
+        require(tokenProxy.distributeStakes(_trader, _amount));
         // Provide allowance to this by the trader
-        require(this.transferFrom(_trader,0x0,_amount));
-        require(tokenProxy.distributeStakes(_trader, profit, _amount, writer)); 
+        require(this.transferFrom(_trader,0x0,_amount)); 
         Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
-        LogOptionsExcercised(_trader, _currentPrice, _amount, now);
+        LogOptionsExcercised(_trader, _amount, now);
     }
 
     //////////////////////////////////
