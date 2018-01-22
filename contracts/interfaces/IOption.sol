@@ -8,7 +8,8 @@ interface IOption {
 
     function incOffering(uint256 _extraOffering) public;
 
-    function tradeOption(address _trader, uint256 _amount) external returns(bool);
+    function tradeOption(address _trader, uint256 _amount) external returns (bool);
+    
     // function to complete the option
     function exerciseOption(address _trader, uint256 _amount) external returns (bool);
 
