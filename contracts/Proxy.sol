@@ -1,8 +1,9 @@
 pragma solidity ^0.4.18;
 
 import './interfaces/IERC20.sol';
+import './interfaces/IProxy.sol';
 
-contract Proxy {
+contract Proxy is IProxy {
 
     IERC20 public BT;
     IERC20 public QT;
@@ -26,14 +27,14 @@ contract Proxy {
         buyer = _buyer;
     }
 
-    function distributeStakes(address _to, uint256 _amount) onlyOption public returns(bool) {
+    function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
         require(msg.sender == owner);
         require(QT.transfer(_to, strikePrice));
         require(QT.transferFrom(_to, buyer, _amount));
         return true; 
     } 
 
-    function withdrawal() onlyOption public returns (bool) {
+    function withdrawal() onlyOption public returns (bool success) {
         require(msg.sender == owner);
         require(now > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);

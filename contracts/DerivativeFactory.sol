@@ -14,33 +14,29 @@ contract DerivativeFactory is IDerivativeFactory {
 
     struct OptionsData {
         bool expiryStatus;
-        uint256 expirationDate;  // Block No.
+        uint256 blockNoExpiry;  // Block No.
         address owner;
     } 
 
     // mapping to track the list of options created by any writer 
     mapping(address => OptionsData) public listOfOptions;
 
-    event OptionCreated(address _baseToken, address _quoteToken, uint256 _expirationDate, address indexed _creator);
+    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
     // constructor for the derivative contract
     function DerivativeFactory(address _callOptionAddress) public {
         require(_callOptionAddress != address(0));
         callOption = IOption(_callOptionAddress);
     }
 
-    function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _expirationDate) 
+    function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
     public 
     returns (bool) 
     {
-        require(_expirationDate > now);
+        require(_blockNoExpiry > now);
         // Before creation creator should have to pay the service fee to wandx Platform
-        address optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _expirationDate, msg.sender);    
-        listOfOptions[optionAddress] = OptionsData(false,_expirationDate,msg.sender);
+        address optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
+        listOfOptions[optionAddress] = OptionsData(false,_blockNoExpiry,msg.sender);
+        return true;
     }
-
-// // function to add the new clones of the options before the expiration time
-//     function generateCloneOption(address _optionAddress, uint256 _number) public returns (bool){
-
-//     }
 
 }

@@ -5,13 +5,14 @@ import './interfaces/IERC20.sol';
 import './SafeMath.sol';
 import './Proxy.sol';
 
-contract Option is IOption, IERC20 {
+contract Option is IOption {
 
     using SafeMath for uint256;
 
     IERC20 public BT;
     IERC20 public QT;
-    Proxy private tokenProxy;
+    IProxy public proxy;
+    address public tokenProxy;
 
     address public buyer;
     address public baseToken;
@@ -78,8 +79,10 @@ contract Option is IOption, IERC20 {
         require(_premium > 0);
         require(expirationDate >= _expiry);
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
+        proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
+        require(QT.transferFrom(buyer, tokenProxy, _optionsOffered));
         balances[this] = _optionsOffered;
         optionsOffered = _optionsOffered;
         premium = _premium;
@@ -110,7 +113,7 @@ contract Option is IOption, IERC20 {
      * @return bool
      */
 
-    function tradeOption(address _trader, uint256 _amount) public returns(bool) {
+    function tradeOption(address _trader, uint256 _amount) external returns(bool) {
         require(_amount > 0);
         require(_trader != address(0));
         require(expiry > now);
@@ -118,6 +121,7 @@ contract Option is IOption, IERC20 {
         require(this.transfer(_trader,_amount));
         Traders[_trader] = traderData(_amount,false);
         LogOptionsTrade(_trader, _amount, now);
+        return true;
     }
     
     /**
@@ -134,11 +138,12 @@ contract Option is IOption, IERC20 {
         require(this.balanceOf(_trader) >= _amount);
         require(BT.allowance(tokenProxy, _trader) >= _amount);
         require(QT.balanceOf(tokenProxy) >= _amount);
-        require(tokenProxy.distributeStakes(_trader, _amount));
+        require(proxy.distributeStakes(_trader, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(_trader,0x0,_amount)); 
         Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
         LogOptionsExcercised(_trader, _amount, now);
+        return true;
     }
 
     //////////////////////////////////
