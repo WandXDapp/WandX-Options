@@ -1,0 +1,16 @@
+@font-face {
+    font-family: Helvetica-Bold;
+    src: url(../fonts/HelveticaLTBold.ttf);
+}
+@font-face {
+    font-family: Helvetica-Light;
+    src: url(../fonts/HelveticaLight.ttf);
+}
+@font-face {
+    font-family: Helvetica;
+    src: url(../fonts/Helvetica.ttf);
+}
+@font-face {
+    font-family: Helvetica-Oblique;
+    src: url(../fonts/HelveticaOblique.ttf);
+}
