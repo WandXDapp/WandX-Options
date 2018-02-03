@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import './interfaces/IOption.sol';
 import './interfaces/IERC20.sol';
-import './SafeMath.sol';
+import './helpers/math/SafeMath.sol';
 import './Proxy.sol';
 
 contract Option is IOption {
@@ -20,7 +20,7 @@ contract Option is IOption {
     uint256 public strikePrice;
     uint256 public expirationDate;
 
-    uint256 public optionsOffered;
+    uint256 public assetsOffered;
     uint256 public premium;
     uint256 public expiry;
     bool public isOptionIssued = false;
@@ -67,13 +67,13 @@ contract Option is IOption {
 
     /**
      * @dev `issueOption` Use to issue option or generate the option called only by the owner of the option
-     * @param _optionsOffered No. of options need to be generated
+     * @param _assetsOffered No. of options need to be generated
      * @param _premium Amount to be paid by the trader to buy the option
      * @param _expiry Timestamp when option get expired
      */
 
 
-    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public {
+    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public {
         require(isOptionIssued == false);
         require(msg.sender == buyer);
         require(_premium > 0);
@@ -81,15 +81,16 @@ contract Option is IOption {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-       // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
-        require(QT.transferFrom(buyer, tokenProxy, _optionsOffered));
-        balances[this] = _optionsOffered;
-        optionsOffered = _optionsOffered;
+        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
+        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered)); 
+        balances[this] = _assetsOffered;
+        assetsOffered = _assetsOffered;
         premium = _premium;
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
-        LogOptionsIssued(optionsOffered, expiry, premium);
+        LogOptionsIssued(_assetsOffered, expiry, premium);
     }
+
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
@@ -101,9 +102,9 @@ contract Option is IOption {
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
         require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
-        optionsOffered = optionsOffered.add(_extraOffering);
+        assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
-        LogOptionsIssued(optionsOffered, expiry, premium);
+        LogOptionsIssued(assetsOffered, expiry, premium);
     }
 
     /**
@@ -145,6 +146,24 @@ contract Option is IOption {
         LogOptionsExcercised(_trader, _amount, now);
         return true;
     }
+
+
+    ///////////////////////////////////
+    //// Get Functions
+    //////////////////////////////////
+
+    function getOptionDetails() view public returns (address, address, address, address, uint256, uint256, uint256, uint256) {
+        return (
+            buyer,
+            baseToken,
+            quoteToken,
+            tokenProxy,
+            strikePrice,
+            expiry,
+            premium,
+            assetsOffered
+        );
+    } 
 
     //////////////////////////////////
     ////// ERC20 functions

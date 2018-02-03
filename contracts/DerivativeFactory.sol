@@ -8,22 +8,17 @@ pragma solidity ^0.4.18;
 import './interfaces/IDerivativeFactory.sol';
 import './interfaces/IOption.sol';
 import './Option.sol';
+import './storage/OptionStorage.sol';
+import './helpers/Ownable.sol';
 
-contract DerivativeFactory is IDerivativeFactory {
+contract DerivativeFactory is IDerivativeFactory, Ownable {
 
-    struct OptionsData {
-        bool expiryStatus;
-        uint256 blockNoExpiry;  // Block No.
-        address owner;
-    } 
-
-    // mapping to track the list of options created by any writer 
-    mapping(address => OptionsData) public listOfOptions;
+    OptionStorage Storage;
 
     event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
     // constructor for the derivative contract
-    function DerivativeFactory() public {
-       
+    function DerivativeFactory(address _storageAddress) public {
+       Storage = OptionStorage(_storageAddress);
     }
 
     function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
@@ -32,8 +27,8 @@ contract DerivativeFactory is IDerivativeFactory {
     {
         require(_blockNoExpiry > now);
         // Before creation creator should have to pay the service fee to wandx Platform
-        address optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
-        listOfOptions[optionAddress] = OptionsData(false,_blockNoExpiry,msg.sender);
+        address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
+        Storage.listOfOptions[_optionAddress] = Storage.OptionsData(false,_blockNoExpiry,msg.sender);
         return true;
     }
 
