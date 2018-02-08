@@ -13,7 +13,7 @@ import './helpers/Ownable.sol';
 contract DerivativeFactory is Ownable {
 
     using LDerivativeFactory for address;
-
+    string public version = "0.1";
     address DT_Store;
     IERC20 WAND;
 

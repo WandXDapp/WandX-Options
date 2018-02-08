@@ -1,9 +1,10 @@
 pragma solidity ^0.4.18;
 
-contract OptionStorage {
+import '../helpers/Ownable.sol';
+
+contract OptionStorage is Ownable {
     
-    mapping (bytes32 => uint256) public localUintVariables;
-    mapping (bytes32 => address) public localAddressVariables;
+    address public optionFactory;
 
     struct OptionsData {
         bool expiryStatus;
@@ -13,7 +14,17 @@ contract OptionStorage {
 
     // mapping to track the list of options created by any writer 
     mapping(address => OptionsData) public listOfOptions;
+    mapping (bytes32 => uint256) public localUintVariables;
+    mapping (bytes32 => address) public localAddressVariables;
 
+    modifier onlyOptionFactory() {
+        require(msg.sender == optionFactory);
+        _;
+    }
+
+    function OptionStorage(address _ownerAddress) {
+        owner = _ownerAddress;
+    }
 
     /////////////////////////
     /// Set Functions
@@ -27,8 +38,12 @@ contract OptionStorage {
         localAddressVariables[_name] = _value;
     }
 
-    function setOptionFactoryData(bool _status, uint256 _blockNoExpiry, address _owner, address _optionAddress) public {
+    function setOptionFactoryData(bool _status, uint256 _blockNoExpiry, address _owner, address _optionAddress) onlyOptionFactory public {
         listOfOptions[_optionAddress] = OptionsData(_status, _blockNoExpiry, _owner);
+    }
+
+    function setOptionFactoryAddress(address _optionFactory) onlyOwner public {
+        optionFactory = _optionFactory;
     }
 
     ////////////////////////
