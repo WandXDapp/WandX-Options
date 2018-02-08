@@ -150,7 +150,7 @@ contract Option is IOption {
     uint256 public strikePrice;
     uint256 public expirationDate;
 
-    uint256 public optionsOffered;
+    uint256 public assetsOffered;
     uint256 public premium;
     uint256 public expiry;
     bool public isOptionIssued = false;
@@ -197,13 +197,13 @@ contract Option is IOption {
 
     /**
      * @dev `issueOption` Use to issue option or generate the option called only by the owner of the option
-     * @param _optionsOffered No. of options need to be generated
+     * @param _assetsOffered No. of options need to be generated
      * @param _premium Amount to be paid by the trader to buy the option
      * @param _expiry Timestamp when option get expired
      */
 
 
-    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public {
+    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public {
         require(isOptionIssued == false);
         require(msg.sender == buyer);
         require(_premium > 0);
@@ -211,15 +211,16 @@ contract Option is IOption {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-       // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
-        require(QT.transferFrom(buyer, tokenProxy, _optionsOffered));
-        balances[this] = _optionsOffered;
-        optionsOffered = _optionsOffered;
+        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
+        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered)); 
+        balances[this] = _assetsOffered;
+        assetsOffered = _assetsOffered;
         premium = _premium;
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
-        LogOptionsIssued(optionsOffered, expiry, premium);
+        LogOptionsIssued(_assetsOffered, expiry, premium);
     }
+
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
@@ -231,9 +232,9 @@ contract Option is IOption {
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
         require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
-        optionsOffered = optionsOffered.add(_extraOffering);
+        assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
-        LogOptionsIssued(optionsOffered, expiry, premium);
+        LogOptionsIssued(assetsOffered, expiry, premium);
     }
 
     /**
@@ -275,6 +276,24 @@ contract Option is IOption {
         LogOptionsExcercised(_trader, _amount, now);
         return true;
     }
+
+
+    ///////////////////////////////////
+    //// Get Functions
+    //////////////////////////////////
+
+    function getOptionDetails() view public returns (address, address, address, address, uint256, uint256, uint256, uint256) {
+        return (
+            buyer,
+            baseToken,
+            quoteToken,
+            tokenProxy,
+            strikePrice,
+            expiry,
+            premium,
+            assetsOffered
+        );
+    } 
 
     //////////////////////////////////
     ////// ERC20 functions
@@ -346,20 +365,8 @@ contract Option is IOption {
 
 }
 
-// Governanace of this contract need to be decided whether it be operated by the single wandx entity
-// or it will be more decentralized by adding the vote scheme for the changes in the operator contract
-// suggestion are present in the dydx white paper 
-
-
-
-
-
-
-
-contract DerivativeFactory is IDerivativeFactory {
-
-    IOption public callOption;
-
+contract OptionStorage {
+    
     struct OptionsData {
         bool expiryStatus;
         uint256 blockNoExpiry;  // Block No.
@@ -369,11 +376,79 @@ contract DerivativeFactory is IDerivativeFactory {
     // mapping to track the list of options created by any writer 
     mapping(address => OptionsData) public listOfOptions;
 
+    mapping(bool => address[]) public optionAddresses;
+
+    /////////////////////////
+    /// Set Functions
+    ////////////////////////
+
+
+    ////////////////////////
+    /// Get Functions
+    ////////////////////////
+
+    function getActiveOptions() view public returns (address[]) {
+        return optionAddresses[true];
+    }
+
+    function getExpiredOptions() view public returns (address[]) {
+        return optionAddresses[false];
+    }
+
+}
+
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
+contract Ownable {
+  address public owner;
+
+
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+
+  /**
+   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+   * account.
+   */
+  function Ownable() public {
+    owner = msg.sender;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
+  }
+
+  /**
+   * @dev Allows the current owner to transfer control of the contract to a newOwner.
+   * @param newOwner The address to transfer ownership to.
+   */
+  function transferOwnership(address newOwner) public onlyOwner {
+    require(newOwner != address(0));
+    OwnershipTransferred(owner, newOwner);
+    owner = newOwner;
+  }
+
+}
+
+/**
+ * @notice  Governanace of this contract need to be decided whether it be operated by the single wandx entity
+            or it will be more decentralized by adding the vote scheme for the changes in the operator contract
+ */
+contract DerivativeFactory is IDerivativeFactory, Ownable {
+
+    OptionStorage Storage;
+
     event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
     // constructor for the derivative contract
-    function DerivativeFactory(address _callOptionAddress) public {
-        require(_callOptionAddress != address(0));
-        callOption = IOption(_callOptionAddress);
+    function DerivativeFactory(address _storageAddress) public {
+       Storage = OptionStorage(_storageAddress);
     }
 
     function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
@@ -382,8 +457,8 @@ contract DerivativeFactory is IDerivativeFactory {
     {
         require(_blockNoExpiry > now);
         // Before creation creator should have to pay the service fee to wandx Platform
-        address optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
-        listOfOptions[optionAddress] = OptionsData(false,_blockNoExpiry,msg.sender);
+        address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
+        Storage.listOfOptions[_optionAddress] = Storage.OptionsData(false,_blockNoExpiry,msg.sender);
         return true;
     }
 
