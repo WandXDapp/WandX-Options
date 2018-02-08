@@ -8,18 +8,18 @@ contract Proxy is IProxy {
     IERC20 public BT;
     IERC20 public QT;
 
-    address public owner;
+    address public option;
     address public buyer;
     uint256 public optionsExpiry;
     uint256 public strikePrice;
 
     modifier onlyOption() {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         _;
     }
 
     function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer) public {
-        owner = msg.sender;
+        option = msg.sender;
         BT = IERC20(_baseToken);
         QT = IERC20(_quoteToken); 
         optionsExpiry = _expiry;
@@ -28,14 +28,14 @@ contract Proxy is IProxy {
     }
 
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         require(QT.transfer(_to, strikePrice));
         require(QT.transferFrom(_to, buyer, _amount));
         return true; 
     } 
 
     function withdrawal() onlyOption public returns (bool success) {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         require(now > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
