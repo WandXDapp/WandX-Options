@@ -31,7 +31,10 @@
   "scripts": {
     "test": "testrpc -l 1000000000 & truffle test",
     "compile": "truffle compile --optimize-runs 200",
-    "flatten": "sol-merger './contracts/*.sol' ./flat"
+    "flatten": "sol-merger './contracts/*.sol' ./flat",
+    "migrate-dev": "truffle migrate --network=development",
+    "migrate-ropsten": "truffle migrate --network=ropsten",
+    "migrate-main": "truffle migrate --network=main"
   },
   "keywords": [
     "call",

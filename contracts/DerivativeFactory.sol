@@ -17,13 +17,28 @@ contract DerivativeFactory is Ownable {
     address DT_Store;
     IERC20 WAND;
 
+    // Notifications
     event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
 
+    /**
+     * @dev Constructor
+     * @param _storageAddress Address of the storage contract
+     * @param _tokenAddress Address of the token which used as the transaction fee    
+     */
     function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
        DT_Store = _storageAddress;
        WAND = IERC20(_tokenAddress);
        owner = msg.sender;
     }
+
+    /**
+     * @dev Function use to create the new option contract
+     * @param _baseToken Address of the Base token
+     * @param _quoteToken Address of the Quote token
+     * @param _strikePrice Price at which buyer will obligate to buy the base token
+     * @param _blockNoExpiry Unix timestamp to expire the option
+     * @return bool
+     */
 
     function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
     external 
