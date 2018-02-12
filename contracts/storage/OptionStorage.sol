@@ -22,7 +22,7 @@ contract OptionStorage is Ownable {
         _;
     }
 
-    function OptionStorage(address _ownerAddress) {
+    function OptionStorage(address _ownerAddress) public {
         owner = _ownerAddress;
     }
 
@@ -50,11 +50,11 @@ contract OptionStorage is Ownable {
     /// Get Functions
     ////////////////////////
 
-    function getUintValues(bytes32 _name) public returns(uint256) {
+    function getUintValues(bytes32 _name) public view returns(uint256) {
         return localUintVariables[_name];
     }
 
-    function getAddressValues(bytes32 _name) public returns(address) {
+    function getAddressValues(bytes32 _name) public view returns(address) {
         return localAddressVariables[_name];
     }
 

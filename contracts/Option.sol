@@ -81,8 +81,7 @@ contract Option is IOption {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
-        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered)); 
+        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered * strikePrice)); 
         balances[this] = _assetsOffered;
         assetsOffered = _assetsOffered;
         premium = _premium;
@@ -101,7 +100,7 @@ contract Option is IOption {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
+        require(QT.transferFrom(buyer,tokenProxy,_extraOffering * strikePrice));
         assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         LogOptionsIssued(assetsOffered, expiry, premium);
@@ -138,7 +137,7 @@ contract Option is IOption {
         require(expiry >= now);      
         require(this.balanceOf(_trader) >= _amount);
         require(BT.allowance(tokenProxy, _trader) >= _amount);
-        require(QT.balanceOf(tokenProxy) >= _amount);
+        require(QT.balanceOf(tokenProxy) >= _amount * strikePrice);
         require(proxy.distributeStakes(_trader, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(_trader,0x0,_amount)); 
