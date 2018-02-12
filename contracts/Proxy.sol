@@ -18,6 +18,14 @@ contract Proxy is IProxy {
         _;
     }
 
+    /**
+     * @dev Constructor
+     * @param _baseToken Address of the Base token
+     * @param _quoteToken Address of the Quote token
+     * @param _expiry Unix timestamp to expire the option
+     * @param _strikePrice Price at which buyer will obligate to buy the base token
+     * @param _buyer Address of the buyer
+     */
     function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer) public {
         option = msg.sender;
         BT = IERC20(_baseToken);
@@ -27,6 +35,12 @@ contract Proxy is IProxy {
         buyer = _buyer;
     }
 
+    /**
+     * @dev `distributeStakes` Use to settle down the excersice request of the option
+     * @param _to Address of the seller
+     * @param _amount Number of the assets seller want to excercised
+     * @return bool success
+     */
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
         require(msg.sender == option);
         require(QT.transfer(_to, _amount * strikePrice));
@@ -34,6 +48,10 @@ contract Proxy is IProxy {
         return true; 
     } 
 
+    /**
+     * @dev withdraw the unused base token and quote token only by owner
+     * @return bool success    
+     */
     function withdrawal() onlyOption public returns (bool success) {
         require(msg.sender == option);
         require(now > optionsExpiry);

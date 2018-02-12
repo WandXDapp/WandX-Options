@@ -28,6 +28,7 @@ contract Option is IOption {
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
 
+    // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
@@ -41,6 +42,11 @@ contract Option is IOption {
 
     mapping(address => traderData) public Traders;
 
+    modifier onlyBuyer() {
+        require(msg.sender == buyer);
+        _;
+    }
+    
     /**
      * @dev `Option` Constructor
      */
@@ -146,6 +152,14 @@ contract Option is IOption {
         return true;
     }
 
+    /**
+     * @dev `withdrawTokens` Withdraw the tokens
+     * @return bool
+     */
+    function withdrawTokens() onlyBuyer external returns(bool) {
+        require(proxy.withdrawal());
+        return true;
+    }
 
     ///////////////////////////////////
     //// Get Functions
