@@ -2,16 +2,19 @@ import { duration } from './helpers/utils.js';
 import { latestTime, latestBlock } from './helpers/latest.js';
 
 const BigNumber = require('bignumber.js');
+const Pudding = require("ether-pudding");
 const DerivativeFactory = artifacts.require('./DerivativeFactory.sol');
 const OptionStorage = artifacts.require('./OptionStorage.sol');
+const Library = artifacts.require('./LDerivativeFactory.sol');
 const BaseToken = artifacts.require('./mock_contracts/BaseToken.sol');
 const QuoteToken = artifacts.require('./mock_contracts/QuoteToken.sol');
 
-contract('DerivativeFactory', async(accounts) => {
+contract('DerivativeFactory', accounts => {
     let baseToken;
     let quoteToken;
     let derivativeFactory;
     let optionStorage;
+    let ldf;
 
     // accounts
     const owner = accounts[0]
@@ -20,11 +23,12 @@ contract('DerivativeFactory', async(accounts) => {
 
     //New Option
     const strikePrice = new BigNumber(40).times(new BigNumber(10).pow(18));
-    const blockNoExpiry = (await latestBlock())+ 100 ;
+    let blockNoExpiry;
 
     before(async() => {
         baseToken = await BaseToken.new();
         quoteToken = await QuoteToken.new();
+        blockNoExpiry = (await latestBlock())+ 100 ;
     });
 
     beforeEach(async () => {
@@ -34,7 +38,18 @@ contract('DerivativeFactory', async(accounts) => {
 
     describe('Test Cases for the createNewOption function', async () => {
         it('createNewOption: Should successfully create the new option', async () => {
-            let txReturn = await derivativeFactory.createNewOption(baseToken.address, quoteToken.address, strikePrice, blockNoExpiry);
+            await quoteToken.getTokens(new BigNumber(1000).times(new BigNumber(10).pow(18)), buyer);
+            await quoteToken.approve(derivativeFactory.address, 100, { from : buyer });
+            let txReturn = await derivativeFactory.createNewOption(
+                baseToken.address,
+                quoteToken.address,
+                strikePrice,
+                blockNoExpiry,
+                {
+                    from : buyer,
+                    gas : 500000
+                }
+            );
             console.log(txReturn);
         });
     });

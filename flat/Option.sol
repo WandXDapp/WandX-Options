@@ -88,18 +88,26 @@ contract Proxy is IProxy {
     IERC20 public BT;
     IERC20 public QT;
 
-    address public owner;
+    address public option;
     address public buyer;
     uint256 public optionsExpiry;
     uint256 public strikePrice;
 
     modifier onlyOption() {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         _;
     }
 
+    /**
+     * @dev Constructor
+     * @param _baseToken Address of the Base token
+     * @param _quoteToken Address of the Quote token
+     * @param _expiry Unix timestamp to expire the option
+     * @param _strikePrice Price at which buyer will obligate to buy the base token
+     * @param _buyer Address of the buyer
+     */
     function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer) public {
-        owner = msg.sender;
+        option = msg.sender;
         BT = IERC20(_baseToken);
         QT = IERC20(_quoteToken); 
         optionsExpiry = _expiry;
@@ -107,15 +115,25 @@ contract Proxy is IProxy {
         buyer = _buyer;
     }
 
+    /**
+     * @dev `distributeStakes` Use to settle down the excersice request of the option
+     * @param _to Address of the seller
+     * @param _amount Number of the assets seller want to excercised
+     * @return bool success
+     */
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
-        require(msg.sender == owner);
-        require(QT.transfer(_to, strikePrice));
-        require(QT.transferFrom(_to, buyer, _amount));
+        require(msg.sender == option);
+        require(QT.transfer(_to, _amount * strikePrice));
+        require(BT.transferFrom(_to, buyer, _amount));
         return true; 
     } 
 
+    /**
+     * @dev withdraw the unused base token and quote token only by owner
+     * @return bool success    
+     */
     function withdrawal() onlyOption public returns (bool success) {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         require(now > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
@@ -149,6 +167,7 @@ contract Option is IOption {
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
 
+    // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
@@ -162,6 +181,11 @@ contract Option is IOption {
 
     mapping(address => traderData) public Traders;
 
+    modifier onlyBuyer() {
+        require(msg.sender == buyer);
+        _;
+    }
+    
     /**
      * @dev `Option` Constructor
      */
@@ -202,8 +226,7 @@ contract Option is IOption {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
-        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered)); 
+        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered * strikePrice)); 
         balances[this] = _assetsOffered;
         assetsOffered = _assetsOffered;
         premium = _premium;
@@ -222,7 +245,7 @@ contract Option is IOption {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
+        require(QT.transferFrom(buyer,tokenProxy,_extraOffering * strikePrice));
         assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         LogOptionsIssued(assetsOffered, expiry, premium);
@@ -259,7 +282,7 @@ contract Option is IOption {
         require(expiry >= now);      
         require(this.balanceOf(_trader) >= _amount);
         require(BT.allowance(tokenProxy, _trader) >= _amount);
-        require(QT.balanceOf(tokenProxy) >= _amount);
+        require(QT.balanceOf(tokenProxy) >= _amount * strikePrice);
         require(proxy.distributeStakes(_trader, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(_trader,0x0,_amount)); 
@@ -268,6 +291,14 @@ contract Option is IOption {
         return true;
     }
 
+    /**
+     * @dev `withdrawTokens` Withdraw the tokens
+     * @return bool
+     */
+    function withdrawTokens() onlyBuyer external returns(bool) {
+        require(proxy.withdrawal());
+        return true;
+    }
 
     ///////////////////////////////////
     //// Get Functions

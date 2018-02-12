@@ -1,12 +1,124 @@
 pragma solidity ^0.4.18;
 
-interface IDerivativeFactory {
+/**
+ * @title Ownable
+ * @dev The Ownable contract has an owner address, and provides basic authorization control
+ * functions, this simplifies the implementation of "user permissions".
+ */
+contract Ownable {
+  address public owner;
 
-// function to create the options
-    function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
-    public 
-    returns (bool); 
 
+  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+
+  /**
+   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
+   * account.
+   */
+  function Ownable() public {
+    owner = msg.sender;
+  }
+
+  /**
+   * @dev Throws if called by any account other than the owner.
+   */
+  modifier onlyOwner() {
+    require(msg.sender == owner);
+    _;
+  }
+
+  /**
+   * @dev Allows the current owner to transfer control of the contract to a newOwner.
+   * @param newOwner The address to transfer ownership to.
+   */
+  function transferOwnership(address newOwner) public onlyOwner {
+    require(newOwner != address(0));
+    OwnershipTransferred(owner, newOwner);
+    owner = newOwner;
+  }
+
+}
+
+contract OptionStorage is Ownable {
+    
+    address public optionFactory;
+
+    struct OptionsData {
+        bool expiryStatus;
+        uint256 blockNoExpiry;  // Block No.
+        address owner;
+    } 
+
+    // mapping to track the list of options created by any writer 
+    mapping(address => OptionsData) public listOfOptions;
+    mapping (bytes32 => uint256) public localUintVariables;
+    mapping (bytes32 => address) public localAddressVariables;
+
+    modifier onlyOptionFactory() {
+        require(msg.sender == optionFactory);
+        _;
+    }
+
+    function OptionStorage(address _ownerAddress) public {
+        owner = _ownerAddress;
+    }
+
+    /////////////////////////
+    /// Set Functions
+    ////////////////////////
+
+    function setUintValues(bytes32 _name, uint256 _value) public {
+        localUintVariables[_name] = _value;
+    }
+
+    function setAddressValues(bytes32 _name, address _value) public {
+        localAddressVariables[_name] = _value;
+    }
+
+    function setOptionFactoryData(bool _status, uint256 _blockNoExpiry, address _owner, address _optionAddress) onlyOptionFactory public {
+        listOfOptions[_optionAddress] = OptionsData(_status, _blockNoExpiry, _owner);
+    }
+
+    function setOptionFactoryAddress(address _optionFactory) onlyOwner public {
+        optionFactory = _optionFactory;
+    }
+
+    ////////////////////////
+    /// Get Functions
+    ////////////////////////
+
+    function getUintValues(bytes32 _name) public view returns(uint256) {
+        return localUintVariables[_name];
+    }
+
+    function getAddressValues(bytes32 _name) public view returns(address) {
+        return localAddressVariables[_name];
+    }
+
+
+}
+
+library LDerivativeFactory {
+    function getOrgAccount(address _storageContract) public view returns(address _orgAccount) {
+        return OptionStorage(_storageContract).getAddressValues(keccak256("ORG_ACCOUNT"));
+    }
+
+    function getNewOptionFee(address _storageContract) public view returns(uint256 _fee) {
+        return OptionStorage(_storageContract).getUintValues(keccak256("fee"));
+    }
+
+    function setOptionFactoryData(address _storageContract, bool _status, uint256 _expiry, address _owner, address _optionAddress) public {
+        OptionStorage(_storageContract).setOptionFactoryData(_status, _expiry, _owner, _optionAddress);
+    }
+
+    function setNewOptionFee(address _storageContract, uint256 _fee) public {
+        OptionStorage(_storageContract).setUintValues(keccak256("fee"), _fee);
+    }
+
+    function setOrgAddress(address _storageContract, address _orgAddress) public {
+        OptionStorage(_storageContract).setAddressValues(keccak256("ORG_ACCOUNT"), _orgAddress);
+    }
 }
 
 /// ERC Token Standard #20 Interface (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20-token-standard.md)
@@ -97,18 +209,26 @@ contract Proxy is IProxy {
     IERC20 public BT;
     IERC20 public QT;
 
-    address public owner;
+    address public option;
     address public buyer;
     uint256 public optionsExpiry;
     uint256 public strikePrice;
 
     modifier onlyOption() {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         _;
     }
 
+    /**
+     * @dev Constructor
+     * @param _baseToken Address of the Base token
+     * @param _quoteToken Address of the Quote token
+     * @param _expiry Unix timestamp to expire the option
+     * @param _strikePrice Price at which buyer will obligate to buy the base token
+     * @param _buyer Address of the buyer
+     */
     function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer) public {
-        owner = msg.sender;
+        option = msg.sender;
         BT = IERC20(_baseToken);
         QT = IERC20(_quoteToken); 
         optionsExpiry = _expiry;
@@ -116,15 +236,25 @@ contract Proxy is IProxy {
         buyer = _buyer;
     }
 
+    /**
+     * @dev `distributeStakes` Use to settle down the excersice request of the option
+     * @param _to Address of the seller
+     * @param _amount Number of the assets seller want to excercised
+     * @return bool success
+     */
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
-        require(msg.sender == owner);
-        require(QT.transfer(_to, strikePrice));
-        require(QT.transferFrom(_to, buyer, _amount));
+        require(msg.sender == option);
+        require(QT.transfer(_to, _amount * strikePrice));
+        require(BT.transferFrom(_to, buyer, _amount));
         return true; 
     } 
 
+    /**
+     * @dev withdraw the unused base token and quote token only by owner
+     * @return bool success    
+     */
     function withdrawal() onlyOption public returns (bool success) {
-        require(msg.sender == owner);
+        require(msg.sender == option);
         require(now > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
@@ -158,6 +288,7 @@ contract Option is IOption {
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
 
+    // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
     event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
@@ -171,6 +302,11 @@ contract Option is IOption {
 
     mapping(address => traderData) public Traders;
 
+    modifier onlyBuyer() {
+        require(msg.sender == buyer);
+        _;
+    }
+    
     /**
      * @dev `Option` Constructor
      */
@@ -211,8 +347,7 @@ contract Option is IOption {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        // require(BT.transferFrom(writer,tokenProxy,_optionsOffered));
-        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered)); 
+        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered * strikePrice)); 
         balances[this] = _assetsOffered;
         assetsOffered = _assetsOffered;
         premium = _premium;
@@ -231,7 +366,7 @@ contract Option is IOption {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        require(BT.transferFrom(buyer,tokenProxy,_extraOffering));
+        require(QT.transferFrom(buyer,tokenProxy,_extraOffering * strikePrice));
         assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         LogOptionsIssued(assetsOffered, expiry, premium);
@@ -268,7 +403,7 @@ contract Option is IOption {
         require(expiry >= now);      
         require(this.balanceOf(_trader) >= _amount);
         require(BT.allowance(tokenProxy, _trader) >= _amount);
-        require(QT.balanceOf(tokenProxy) >= _amount);
+        require(QT.balanceOf(tokenProxy) >= _amount * strikePrice);
         require(proxy.distributeStakes(_trader, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(_trader,0x0,_amount)); 
@@ -277,6 +412,14 @@ contract Option is IOption {
         return true;
     }
 
+    /**
+     * @dev `withdrawTokens` Withdraw the tokens
+     * @return bool
+     */
+    function withdrawTokens() onlyBuyer external returns(bool) {
+        require(proxy.withdrawal());
+        return true;
+    }
 
     ///////////////////////////////////
     //// Get Functions
@@ -365,101 +508,65 @@ contract Option is IOption {
 
 }
 
-contract OptionStorage {
-    
-    struct OptionsData {
-        bool expiryStatus;
-        uint256 blockNoExpiry;  // Block No.
-        address owner;
-    } 
-
-    // mapping to track the list of options created by any writer 
-    mapping(address => OptionsData) public listOfOptions;
-
-    mapping(bool => address[]) public optionAddresses;
-
-    /////////////////////////
-    /// Set Functions
-    ////////////////////////
-
-
-    ////////////////////////
-    /// Get Functions
-    ////////////////////////
-
-    function getActiveOptions() view public returns (address[]) {
-        return optionAddresses[true];
-    }
-
-    function getExpiredOptions() view public returns (address[]) {
-        return optionAddresses[false];
-    }
-
-}
-
-/**
- * @title Ownable
- * @dev The Ownable contract has an owner address, and provides basic authorization control
- * functions, this simplifies the implementation of "user permissions".
- */
-contract Ownable {
-  address public owner;
-
-
-  event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
-
-
-  /**
-   * @dev The Ownable constructor sets the original `owner` of the contract to the sender
-   * account.
-   */
-  function Ownable() public {
-    owner = msg.sender;
-  }
-
-  /**
-   * @dev Throws if called by any account other than the owner.
-   */
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
-
-  /**
-   * @dev Allows the current owner to transfer control of the contract to a newOwner.
-   * @param newOwner The address to transfer ownership to.
-   */
-  function transferOwnership(address newOwner) public onlyOwner {
-    require(newOwner != address(0));
-    OwnershipTransferred(owner, newOwner);
-    owner = newOwner;
-  }
-
-}
-
 /**
  * @notice  Governanace of this contract need to be decided whether it be operated by the single wandx entity
             or it will be more decentralized by adding the vote scheme for the changes in the operator contract
  */
-contract DerivativeFactory is IDerivativeFactory, Ownable {
 
-    OptionStorage Storage;
 
+
+
+
+
+contract DerivativeFactory is Ownable {
+
+    using LDerivativeFactory for address;
+    string public version = "0.1";
+    address DT_Store;
+    IERC20 WAND;
+
+    // Notifications
     event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
-    // constructor for the derivative contract
-    function DerivativeFactory(address _storageAddress) public {
-       Storage = OptionStorage(_storageAddress);
+
+    /**
+     * @dev Constructor
+     * @param _storageAddress Address of the storage contract
+     * @param _tokenAddress Address of the token which used as the transaction fee    
+     */
+    function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
+       DT_Store = _storageAddress;
+       WAND = IERC20(_tokenAddress);
+       owner = msg.sender;
     }
 
+    /**
+     * @dev Function use to create the new option contract
+     * @param _baseToken Address of the Base token
+     * @param _quoteToken Address of the Quote token
+     * @param _strikePrice Price at which buyer will obligate to buy the base token
+     * @param _blockNoExpiry Unix timestamp to expire the option
+     * @return bool
+     */
+
     function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
-    public 
+    external 
     returns (bool) 
-    {
-        require(_blockNoExpiry > now);
+    {   
+        address orgAccount = DT_Store.getOrgAccount();
+        uint256 _fee = DT_Store.getNewOptionFee();
         // Before creation creator should have to pay the service fee to wandx Platform
+        require(WAND.transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
-        Storage.listOfOptions[_optionAddress] = Storage.OptionsData(false,_blockNoExpiry,msg.sender);
+        DT_Store.setOptionFactoryData(false, _blockNoExpiry, msg.sender, _optionAddress);
         return true;
+    }
+
+    function changeNewOptionFee(uint256 _newFee) onlyOwner public {
+        DT_Store.setNewOptionFee(_newFee);
+    }
+
+    function setOrgAddress(address _orgAddress) onlyOwner public {
+        DT_Store.setOrgAddress(_orgAddress);
     }
 
 }
