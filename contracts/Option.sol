@@ -61,7 +61,7 @@ contract Option is IOption {
     {
         require(_buyer != address(0) && _quoteToken != address(0) && _baseToken != address(0));
         require(_expirationDate > now);
-        require(strikePrice > 0);
+        require(_strikePrice > 0);
         buyer = _buyer;
         baseToken = _baseToken;
         quoteToken = _quoteToken;

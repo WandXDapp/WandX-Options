@@ -536,6 +536,7 @@ contract DerivativeFactory is Ownable {
     function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
        DT_Store = _storageAddress;
        WAND = IERC20(_tokenAddress);
+       DT_Store.setNewOptionFee(100 * 10 ** 18);
        owner = msg.sender;
     }
 

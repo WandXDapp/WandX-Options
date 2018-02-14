@@ -38,8 +38,8 @@ contract OptionStorage is Ownable {
         localAddressVariables[_name] = _value;
     }
 
-    function setOptionFactoryData(bool _status, uint256 _blockNoExpiry, address _owner, address _optionAddress) onlyOptionFactory public {
-        listOfOptions[_optionAddress] = OptionsData(_status, _blockNoExpiry, _owner);
+    function setOptionFactoryData(bool _status, uint256 _blockTimestamp, address _owner, address _optionAddress) onlyOptionFactory public {
+        listOfOptions[_optionAddress] = OptionsData(_status, _blockTimestamp, _owner);
     }
 
     function setOptionFactoryAddress(address _optionFactory) onlyOwner public {

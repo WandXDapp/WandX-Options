@@ -18,7 +18,7 @@ contract DerivativeFactory is Ownable {
     IERC20 WAND;
 
     // Notifications
-    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockNoExpiry, address indexed _creator);
+    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address indexed _creator);
 
     /**
      * @dev Constructor
@@ -37,11 +37,10 @@ contract DerivativeFactory is Ownable {
      * @param _baseToken Address of the Base token
      * @param _quoteToken Address of the Quote token
      * @param _strikePrice Price at which buyer will obligate to buy the base token
-     * @param _blockNoExpiry Unix timestamp to expire the option
+     * @param _blockTimestamp Unix timestamp to expire the option
      * @return bool
      */
-
-    function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockNoExpiry) 
+    function createNewOption(address _baseToken, address _quoteToken, uint256 _strikePrice, uint256 _blockTimestamp) 
     external 
     returns (bool) 
     {   
@@ -49,8 +48,8 @@ contract DerivativeFactory is Ownable {
         uint256 _fee = DT_Store.getNewOptionFee();
         // Before creation creator should have to pay the service fee to wandx Platform
         require(WAND.transferFrom(msg.sender, orgAccount, _fee));
-        address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockNoExpiry, msg.sender);    
-        DT_Store.setOptionFactoryData(false, _blockNoExpiry, msg.sender, _optionAddress);
+        address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockTimestamp, msg.sender);    
+        DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
         return true;
     }
 
@@ -60,6 +59,14 @@ contract DerivativeFactory is Ownable {
 
     function setOrgAddress(address _orgAddress) onlyOwner public {
         DT_Store.setOrgAddress(_orgAddress);
+    }
+
+    function getOrgAccount() public view returns(address) {
+        return DT_Store.getOrgAccount();
+    }
+
+    function getOptionFee() public view returns(uint256) {
+        return DT_Store.getNewOptionFee();
     }
 
 }
