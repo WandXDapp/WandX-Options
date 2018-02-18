@@ -1,8 +1,8 @@
 const DerivativeFactory = artifacts.require('./DerivativeFactory.sol');
 const OptionStorage = artifacts.require('./OptionStorage.sol');
 const LDerivativeFactory = artifacts.require('./LDerivativeFactory.sol');
-const WandToken = '0x27f610bf36eca0939093343ac28b1534a721dbb4';
-const ownerAddress = '0xE5bb2Aa9e4d748439A66c0f5350257AbbcE4d8B6';
+const WandToken = '0xeAe069EaC7c768fd16f677D2e17e150567f512da';
+const ownerAddress = '0x37dd47bb0ED2d8Ae0E6aC17935316FC8F75b75da';
 
 module.exports =  function(deployer) {
  return deployer.deploy(OptionStorage, ownerAddress).then(() => {
