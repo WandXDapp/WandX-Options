@@ -50,6 +50,7 @@ contract DerivativeFactory is Ownable {
         require(WAND.transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockTimestamp, msg.sender);    
         DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
+        OptionCreated(_baseToken, _quoteToken, _blockTimestamp, msg.sender);
         return true;
     }
 
@@ -57,7 +58,7 @@ contract DerivativeFactory is Ownable {
         DT_Store.setNewOptionFee(_newFee);
     }
 
-    function setOrgAddress(address _orgAddress) onlyOwner public {
+    function setOrgAccount(address _orgAddress) onlyOwner public {
         DT_Store.setOrgAddress(_orgAddress);
     }
 
