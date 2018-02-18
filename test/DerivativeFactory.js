@@ -5,7 +5,6 @@ import should from 'should';
 const BigNumber = require('bignumber.js');
 const DerivativeFactory = artifacts.require('./DerivativeFactory.sol');
 const OptionStorage = artifacts.require('./OptionStorage.sol');
-const Library = artifacts.require('./LDerivativeFactory.sol');
 const BaseToken = artifacts.require('./mock_contracts/BaseToken.sol');
 const QuoteToken = artifacts.require('./mock_contracts/QuoteToken.sol');
 const Option = artifacts.require('option.sol');
@@ -62,7 +61,7 @@ contract('DerivativeFactory', accounts => {
                     gas : 4000000
                 }
             );
-            
+
             txReturn.logs[0].args._creator.should.equal(buyer);
             
         });

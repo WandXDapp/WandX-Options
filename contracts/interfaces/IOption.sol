@@ -11,7 +11,7 @@ interface IOption {
     function tradeOption(address _trader, uint256 _amount) external returns (bool);
     
     // function to complete the option
-    function exerciseOption(address _trader, uint256 _amount) external returns (bool);
+    function exerciseOption(uint256 _amount) external returns (bool);
 
     function transfer(address _to, uint256 _value) public returns (bool);
 

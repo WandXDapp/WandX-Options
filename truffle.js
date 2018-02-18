@@ -1,6 +1,9 @@
 require('babel-register');
 require('babel-polyfill');
 
+var HDWalletProvider = require("truffle-hdwallet-provider");
+const mnemonic = require('fs').readFileSync('./sample-pass').toString();
+
 module.exports = {
   networks: {
     development: {
@@ -11,11 +14,10 @@ module.exports = {
       network_id: '*',
     },
     ropsten: {
-      host: 'localhost',
-      port: 1337,
-      network_id: '3',
-      from: '',
-      gas: 4.612e6,
+      provider: new HDWalletProvider(mnemonic, "https://ropsten.infura.io/"),
+      network_id: 3,
+      gas: 4700036,
+      gasPrice: 130000000000,
     },
     coverage: {
       host: 'localhost',

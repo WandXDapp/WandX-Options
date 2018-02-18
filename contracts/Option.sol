@@ -25,13 +25,15 @@ contract Option is IOption {
     uint256 public expiry;
     bool public isOptionIssued = false;
 
+    uint8 public decimals = 0;
+    uint8 public constant DECIMAL_FACTOR = 18;
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
 
     // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
+    event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium, address _tokenProxy);
     event LogOptionsTrade(address indexed _trader, uint256 _amount, uint256 _timestamp);
     event LogOptionsExcercised(address indexed _trader, uint256 _amount, uint256 _timestamp);
 
@@ -83,17 +85,20 @@ contract Option is IOption {
         require(isOptionIssued == false);
         require(msg.sender == buyer);
         require(_premium > 0);
-        require(expirationDate >= _expiry);
+        require(expirationDate >= now);
+        require(_expiry > block.number);
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered * strikePrice)); 
+        uint256 assets = _assetsOffered * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(buyer, tokenProxy, assets)); 
         balances[this] = _assetsOffered;
         assetsOffered = _assetsOffered;
         premium = _premium;
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
-        LogOptionsIssued(_assetsOffered, expiry, premium);
+        Transfer(0x0, this, _assetsOffered);
+        LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
 
@@ -106,10 +111,12 @@ contract Option is IOption {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        require(QT.transferFrom(buyer,tokenProxy,_extraOffering * strikePrice));
+        uint256 extraOffering = _extraOffering * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(buyer, tokenProxy, extraOffering));
         assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
-        LogOptionsIssued(assetsOffered, expiry, premium);
+        Transfer(0x0, this, _extraOffering);
+        LogOptionsIssued(assetsOffered, expiry, premium, tokenProxy);
     }
 
     /**
@@ -118,12 +125,12 @@ contract Option is IOption {
      * @param _amount No. of option trader buy
      * @return bool
      */
-
     function tradeOption(address _trader, uint256 _amount) external returns(bool) {
         require(_amount > 0);
         require(_trader != address(0));
-        require(expiry > now);
-        require(QT.transferFrom(_trader, tokenProxy, _amount * premium));
+        require(expiry > block.number);
+        uint256 amount = _amount * premium * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(_trader, tokenProxy, amount));
         require(this.transfer(_trader,_amount));
         Traders[_trader] = traderData(_amount,false);
         LogOptionsTrade(_trader, _amount, now);
@@ -132,23 +139,20 @@ contract Option is IOption {
     
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
-     * @param _trader Address of the holder of the option
      * @param _amount no. of option trader want to exercise
      * @return bool
      */
 
-    function exerciseOption(address _trader, uint256 _amount) external returns (bool) {
+    function exerciseOption(uint256 _amount) external returns (bool) {
         require(_amount > 0);
-        require(_trader != address(0));
-        require(expiry >= now);      
-        require(this.balanceOf(_trader) >= _amount);
-        require(BT.allowance(tokenProxy, _trader) >= _amount);
-        require(QT.balanceOf(tokenProxy) >= _amount * strikePrice);
-        require(proxy.distributeStakes(_trader, _amount));
+        require(expiry >= block.number);      
+        require(this.balanceOf(msg.sender) >= _amount);
+        uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
+        require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
-        require(this.transferFrom(_trader,0x0,_amount)); 
-        Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
-        LogOptionsExcercised(_trader, _amount, now);
+        require(this.transferFrom(msg.sender, 0x0, _amount)); 
+        Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
+        LogOptionsExcercised(msg.sender, _amount, now);
         return true;
     }
 

@@ -59,4 +59,20 @@ function revertToSnapshot(snapShotId) {
     });
 };
 
-  export { increaseTime, takeSnapshot, revertToSnapshot };
+function increaseBlockNo() {
+    return new Promise((resolve, reject) => {
+        web3.currentProvider.sendAsync({
+            jsonrpc: '2.0',
+            method: 'evm_mine',
+            id: new Date().getTime()
+        }, (err) => {
+            if (err) {
+                return reject(err);
+            }
+
+            resolve();
+        });
+    });
+};
+
+  export { increaseTime, takeSnapshot, revertToSnapshot, increaseBlockNo };

@@ -18,7 +18,7 @@ contract DerivativeFactory is Ownable {
     IERC20 WAND;
 
     // Notifications
-    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address indexed _creator);
+    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address _optionAddress, address indexed _creator);
 
     /**
      * @dev Constructor
@@ -50,7 +50,7 @@ contract DerivativeFactory is Ownable {
         require(WAND.transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, _blockTimestamp, msg.sender);    
         DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
-        OptionCreated(_baseToken, _quoteToken, _blockTimestamp, msg.sender);
+        OptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
         return true;
     }
 
