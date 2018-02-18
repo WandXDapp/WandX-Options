@@ -13,8 +13,18 @@ interface IERC20 {
 
 interface IProxy {
 
+    /**
+     * @dev `distributeStakes` Use to settle down the excersice request of the option
+     * @param _to Address of the seller
+     * @param _amount Number of the assets seller want to excercised
+     * @return bool success
+     */
     function distributeStakes(address _to, uint256 _amount) public returns (bool success);
 
+    /**
+     * @dev withdraw the unused base token and quote token only by owner
+     * @return bool success    
+     */
     function withdrawal() public returns (bool success);
 }
 
@@ -69,7 +79,7 @@ contract Proxy is IProxy {
      */
     function withdrawal() onlyOption public returns (bool success) {
         require(msg.sender == option);
-        require(now > optionsExpiry);
+        require(block.number > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
         require(BT.transfer(buyer, balanceBT));

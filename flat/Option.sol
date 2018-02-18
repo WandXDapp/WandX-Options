@@ -13,23 +13,79 @@ interface IERC20 {
 
 interface IOption {
 
+     /**
+      * @dev `issueOption` Use to issue option or generate the option called only by the owner of the option
+      * @param _assetsOffered No. of options need to be generated
+      * @param _premium Amount to be paid by the trader to buy the option
+      * @param _expiry Timestamp when option get expired
+      */
     function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public;
 
+    /**
+     * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
+     * @param _extraOffering No. of options need to generate
+     */
     function incOffering(uint256 _extraOffering) public;
 
+    /**
+     * @dev `tradeOption` This function use to buy the option
+     * @param _trader Address of the buyer who buy the option
+     * @param _amount No. of option trader buy
+     * @return bool
+     */
     function tradeOption(address _trader, uint256 _amount) external returns (bool);
     
-    // function to complete the option
-    function exerciseOption(address _trader, uint256 _amount) external returns (bool);
+     /**
+     * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
+     * @param _amount no. of option trader want to exercise
+     * @return bool
+     */
+    function exerciseOption(uint256 _amount) external returns (bool);
 
+    /**
+     * @dev `withdrawTokens` Withdraw the tokens
+     * @return bool
+     */
+    function withdrawTokens() external returns(bool);
+
+    /** 
+     * @dev send `_value` token to `_to` from `msg.sender`
+     * @param _to The address of the recipient
+     * @param _value The amount of token to be transferred
+     * @return Whether the transfer was successful or not 
+    */
     function transfer(address _to, uint256 _value) public returns (bool);
 
+    /** 
+     * @dev send `_value` token to `_to` from `_from` on the condition it is approved by `_from`
+     * @param _from The address of the sender
+     * @param _to The address of the recipient
+     * @param _value The amount of token to be transferred
+     * @return Whether the transfer was successful or not 
+     */
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool);
 
+    /**
+     * @dev `balanceOf` function used to read the balance of the token holder
+     * @param _owner The address from which the balance will be retrieved
+     * @return The balance 
+     */
     function balanceOf(address _owner) public view returns (uint256 balance);
 
+    /** 
+     * @dev `msg.sender` approves `_spender` to spend `_value` tokens
+     * @param _spender The address of the account able to transfer the tokens
+     * @param _value The amount of tokens to be approved for transfer
+     * @return Whether the approval was successful or not 
+     */
     function approve(address _spender, uint256 _value) public returns (bool);
 
+    /** 
+     * @dev `allowance`
+     * @param _owner The address of the account owning tokens
+     * @param _spender The address of the account able to transfer the tokens
+     * @return Amount of remaining tokens allowed to spent 
+     */
     function allowance(address _owner, address _spender) public view returns (uint256 remaining);
 
 }
@@ -78,8 +134,18 @@ library SafeMath {
 
 interface IProxy {
 
+    /**
+     * @dev `distributeStakes` Use to settle down the excersice request of the option
+     * @param _to Address of the seller
+     * @param _amount Number of the assets seller want to excercised
+     * @return bool success
+     */
     function distributeStakes(address _to, uint256 _amount) public returns (bool success);
 
+    /**
+     * @dev withdraw the unused base token and quote token only by owner
+     * @return bool success    
+     */
     function withdrawal() public returns (bool success);
 }
 
@@ -134,7 +200,7 @@ contract Proxy is IProxy {
      */
     function withdrawal() onlyOption public returns (bool success) {
         require(msg.sender == option);
-        require(now > optionsExpiry);
+        require(block.number > optionsExpiry);
         uint256 balanceBT = BT.balanceOf(this);
         uint256 balanceQT = QT.balanceOf(this);
         require(BT.transfer(buyer, balanceBT));
@@ -164,13 +230,15 @@ contract Option is IOption {
     uint256 public expiry;
     bool public isOptionIssued = false;
 
+    uint8 public decimals = 0;
+    uint8 public constant DECIMAL_FACTOR = 18;
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
 
     // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-    event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium);
+    event LogOptionsIssued(uint256 _optionsIssued, uint256 _expirationTime, uint256 _premium, address _tokenProxy);
     event LogOptionsTrade(address indexed _trader, uint256 _amount, uint256 _timestamp);
     event LogOptionsExcercised(address indexed _trader, uint256 _amount, uint256 _timestamp);
 
@@ -200,7 +268,7 @@ contract Option is IOption {
     {
         require(_buyer != address(0) && _quoteToken != address(0) && _baseToken != address(0));
         require(_expirationDate > now);
-        require(strikePrice > 0);
+        require(_strikePrice > 0);
         buyer = _buyer;
         baseToken = _baseToken;
         quoteToken = _quoteToken;
@@ -216,23 +284,24 @@ contract Option is IOption {
      * @param _premium Amount to be paid by the trader to buy the option
      * @param _expiry Timestamp when option get expired
      */
-
-
     function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public {
         require(isOptionIssued == false);
         require(msg.sender == buyer);
         require(_premium > 0);
-        require(expirationDate >= _expiry);
+        require(expirationDate >= now);
+        require(_expiry > block.number);
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
         proxy = IProxy(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        require(QT.transferFrom(buyer, tokenProxy, _assetsOffered * strikePrice)); 
+        uint256 assets = _assetsOffered * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(buyer, tokenProxy, assets)); 
         balances[this] = _assetsOffered;
         assetsOffered = _assetsOffered;
         premium = _premium;
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
-        LogOptionsIssued(_assetsOffered, expiry, premium);
+        Transfer(0x0, this, _assetsOffered);
+        LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
 
@@ -240,15 +309,16 @@ contract Option is IOption {
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
      * @param _extraOffering No. of options need to generate
      */
-
     function incOffering(uint256 _extraOffering) public {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        require(QT.transferFrom(buyer,tokenProxy,_extraOffering * strikePrice));
+        uint256 extraOffering = _extraOffering * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(buyer, tokenProxy, extraOffering));
         assetsOffered = assetsOffered.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
-        LogOptionsIssued(assetsOffered, expiry, premium);
+        Transfer(0x0, this, _extraOffering);
+        LogOptionsIssued(assetsOffered, expiry, premium, tokenProxy);
     }
 
     /**
@@ -257,12 +327,12 @@ contract Option is IOption {
      * @param _amount No. of option trader buy
      * @return bool
      */
-
     function tradeOption(address _trader, uint256 _amount) external returns(bool) {
         require(_amount > 0);
         require(_trader != address(0));
-        require(expiry > now);
-        require(QT.transferFrom(_trader, tokenProxy, _amount * premium));
+        require(expiry > block.number);
+        uint256 amount = _amount * premium * 10 ** uint256(DECIMAL_FACTOR);
+        require(QT.transferFrom(_trader, tokenProxy, amount));
         require(this.transfer(_trader,_amount));
         Traders[_trader] = traderData(_amount,false);
         LogOptionsTrade(_trader, _amount, now);
@@ -271,23 +341,19 @@ contract Option is IOption {
     
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
-     * @param _trader Address of the holder of the option
      * @param _amount no. of option trader want to exercise
      * @return bool
      */
-
-    function exerciseOption(address _trader, uint256 _amount) external returns (bool) {
+    function exerciseOption(uint256 _amount) external returns (bool) {
         require(_amount > 0);
-        require(_trader != address(0));
-        require(expiry >= now);      
-        require(this.balanceOf(_trader) >= _amount);
-        require(BT.allowance(tokenProxy, _trader) >= _amount);
-        require(QT.balanceOf(tokenProxy) >= _amount * strikePrice);
-        require(proxy.distributeStakes(_trader, _amount));
+        require(expiry >= block.number);      
+        require(this.balanceOf(msg.sender) >= _amount);
+        uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
+        require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
-        require(this.transferFrom(_trader,0x0,_amount)); 
-        Traders[_trader].optionQuantity = Traders[_trader].optionQuantity.sub(_amount);
-        LogOptionsExcercised(_trader, _amount, now);
+        require(this.transferFrom(msg.sender, 0x0, _amount)); 
+        Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
+        LogOptionsExcercised(msg.sender, _amount, now);
         return true;
     }
 

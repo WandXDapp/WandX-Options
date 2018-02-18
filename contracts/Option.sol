@@ -79,8 +79,6 @@ contract Option is IOption {
      * @param _premium Amount to be paid by the trader to buy the option
      * @param _expiry Timestamp when option get expired
      */
-
-
     function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public {
         require(isOptionIssued == false);
         require(msg.sender == buyer);
@@ -106,7 +104,6 @@ contract Option is IOption {
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
      * @param _extraOffering No. of options need to generate
      */
-
     function incOffering(uint256 _extraOffering) public {
         require(msg.sender == buyer);
         require(expiry > now);
@@ -142,7 +139,6 @@ contract Option is IOption {
      * @param _amount no. of option trader want to exercise
      * @return bool
      */
-
     function exerciseOption(uint256 _amount) external returns (bool) {
         require(_amount > 0);
         require(expiry >= block.number);      
