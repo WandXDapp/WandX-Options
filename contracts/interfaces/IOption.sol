@@ -10,7 +10,7 @@ interface IOption {
       * @param _premium Amount to be paid by the trader to buy the option
       * @param _expiry Timestamp when option get expired
       */
-    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public;
+    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public;
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option

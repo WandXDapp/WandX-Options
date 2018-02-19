@@ -134,6 +134,7 @@ contract Option is IOption {
         return true;
     }
     
+    event LogA(uint256 _amount);
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
      * @param _amount no. of option trader want to exercise
@@ -144,6 +145,7 @@ contract Option is IOption {
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
         uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
+        LogA(amount);
         require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, 0x0, _amount)); 

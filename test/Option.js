@@ -31,7 +31,7 @@ contract('Option', accounts =>{
     let tokenProxy;
 
     //New Option
-    const strikePrice = new BigNumber(40).times(new BigNumber(10).pow(18));
+    const strikePrice = new BigNumber(40);
     let blockNoExpiry, blockTimestamp, optionAddress, option;
     const mnemonic = require('fs').readFileSync('./sample-pass').toString();
     console.log(mnemonic);
@@ -165,7 +165,8 @@ contract('Option', accounts =>{
             await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
             await option.approve(option.address, amount, { from: seller });
             console.log(await quoteToken.balanceOf(tokenProxy.address));
-            await option.exerciseOption(amount, { from : seller, gas: 4000000 });
+            const txReturn = await option.exerciseOption(amount, { from : seller, gas: 4000000 });
+            console.log(txReturn);
         });
     });
 
