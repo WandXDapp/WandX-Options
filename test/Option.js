@@ -164,10 +164,17 @@ contract('Option', accounts =>{
         it('exerciseOption: Should successfully excercise option', async () => {
             await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
             await option.approve(option.address, amount, { from: seller });
-            console.log(await quoteToken.balanceOf(tokenProxy.address));
+            let balance = await quoteToken.balanceOf(tokenProxy.address);
+            console.log(balance.toNumber());
             const txReturn = await option.exerciseOption(amount, { from : seller, gas: 4000000 });
             console.log(txReturn);
         });
+
+        // it('distributionStakes: Should transfer the stakes', async ()=> {
+        //     await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
+        //     const tx = await tokenProxy.distributeStakes(seller, new BigNumber(amount).times(new BigNumber(10).pow(18)));
+        //     console.log(tx.receipt.logs);
+        // });
     });
 
 

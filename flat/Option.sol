@@ -19,7 +19,7 @@ interface IOption {
       * @param _premium Amount to be paid by the trader to buy the option
       * @param _expiry Timestamp when option get expired
       */
-    function issueOption(uint256 _optionsOffered, uint256 _premium, uint256 _expiry) public;
+    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public;
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
@@ -339,6 +339,7 @@ contract Option is IOption {
         return true;
     }
     
+    event LogA(uint256 _amount);
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
      * @param _amount no. of option trader want to exercise
@@ -349,6 +350,7 @@ contract Option is IOption {
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
         uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
+        LogA(amount);
         require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, 0x0, _amount)); 
