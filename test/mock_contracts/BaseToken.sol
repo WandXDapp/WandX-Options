@@ -35,7 +35,7 @@ contract BaseToken is IERC20 {
      * @param _value The amount of token to be transferred
      * @return Whether the transfer was successful or not
      */
-    function transfer(address _to, uint256 _value) public returns (bool) {
+    function transfer(address _to, uint256 _value) public returns (bool success) {
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
         Transfer(msg.sender, _to, _value);
@@ -49,7 +49,7 @@ contract BaseToken is IERC20 {
      * @param _value The amount of token to be transferred
      * @return Whether the transfer was successful or not
      */
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
+    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
       require(_to != address(0));
       require(_value <= balances[_from]);
       require(_value <= allowed[_from][msg.sender]);
@@ -76,7 +76,7 @@ contract BaseToken is IERC20 {
      * @param _value The amount of tokens to be approved for transfer
      * @return Whether the approval was successful or not
      */
-    function approve(address _spender, uint256 _value) public returns (bool) {
+    function approve(address _spender, uint256 _value) public returns (bool success) {
         allowed[msg.sender][_spender] = _value;
         Approval(msg.sender, _spender, _value);
         return true;

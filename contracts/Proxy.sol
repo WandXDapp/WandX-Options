@@ -42,7 +42,9 @@ contract Proxy is IProxy {
      * @return bool success
      */
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
-        require(QT.transfer(_to, _amount * strikePrice));
+        uint256 amount = _amount * strikePrice;
+        address to = _to;
+        require(QT.transfer(to, amount));
         require(BT.transferFrom(_to, buyer, _amount));
         return true; 
     } 

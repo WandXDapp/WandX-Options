@@ -85,8 +85,7 @@ contract Option is IOption {
         require(_premium > 0);
         require(expirationDate >= now);
         require(_expiry > block.number);
-        tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
-        proxy = IProxy(tokenProxy);
+        require(createProxy(_expiry));
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
         uint256 assets = _assetsOffered * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
         require(QT.transferFrom(buyer, tokenProxy, assets)); 
@@ -99,6 +98,12 @@ contract Option is IOption {
         LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
+    function createProxy(uint256 _expiry) internal returns(bool) {
+        tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
+        require(addressHasCode(tokenProxy));
+        proxy = IProxy(tokenProxy);
+        return true;
+    }
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
@@ -134,7 +139,6 @@ contract Option is IOption {
         return true;
     }
     
-    event LogA(uint256 _amount);
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
      * @param _amount no. of option trader want to exercise
@@ -145,7 +149,6 @@ contract Option is IOption {
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
         uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
-        LogA(amount);
         require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, 0x0, _amount)); 
@@ -162,6 +165,14 @@ contract Option is IOption {
         require(proxy.withdrawal());
         return true;
     }
+
+    function addressHasCode(address _contract) internal view returns (bool) {
+       uint size;
+       assembly {
+           size := extcodesize(_contract)
+       }
+       return size > 0;
+   }
 
     ///////////////////////////////////
     //// Get Functions
