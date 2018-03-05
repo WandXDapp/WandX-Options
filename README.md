@@ -1,5 +1,5 @@
 # WandX-Options
-Creation and trade of ERC20 Token Put Options.
+Decentralized Creation and trade of Put Options on ERC20 Tokens.
 
 
 ## Live on Ethereum Testnet (Ropsten)
