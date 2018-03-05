@@ -7,7 +7,6 @@ const DerivativeFactory = artifacts.require('./DerivativeFactory.sol');
 const OptionStorage = artifacts.require('./OptionStorage.sol');
 const BaseToken = artifacts.require('./mock_contracts/BaseToken.sol');
 const QuoteToken = artifacts.require('./mock_contracts/QuoteToken.sol');
-const Option = artifacts.require('option.sol');
 
 contract('DerivativeFactory', accounts => {
     let baseToken;
@@ -24,13 +23,12 @@ contract('DerivativeFactory', accounts => {
 
     //New Option
     const strikePrice = new BigNumber(40).times(new BigNumber(10).pow(18));
-    let blockNoExpiry, blockTimestamp;
-
+    let blockNoExpiry = latestBlock() + 100;
+    let blockTimestamp = latestTime() + duration.weeks(5);
+    
     before(async() => {
         baseToken = await BaseToken.new();
         quoteToken = await QuoteToken.new();
-        blockNoExpiry = (await latestBlock())+ 100;
-        blockTimestamp = await latestTime() + duration.weeks(5);
     });
 
     beforeEach(async () => {

@@ -1,7 +1,6 @@
 import { duration, ensureException } from './helpers/utils.js';
 import { latestTime, latestBlock } from './helpers/latest.js';
 import should from 'should';
-import { makeWeb3 } from './helpers/web3';
 
 const BigNumber = require('bignumber.js');
 const DerivativeFactory = artifacts.require('./DerivativeFactory.sol');
@@ -11,12 +10,11 @@ const QuoteToken = artifacts.require('./mock_contracts/QuoteToken.sol');
 const Option = artifacts.require('option.sol');
 const TokenProxy = artifacts.require('Proxy.sol');
 
-contract('Option', accounts =>{
+contract('Option', accounts => {
     let baseToken;
     let quoteToken;
     let derivativeFactory;
     let optionStorage;
-    let web3;
     let amount = 15;
     // accounts
     const owner = accounts[0]
@@ -32,16 +30,14 @@ contract('Option', accounts =>{
 
     //New Option
     const strikePrice = new BigNumber(40);
-    let blockNoExpiry, blockTimestamp, optionAddress, option;
-    const mnemonic = require('fs').readFileSync('./sample-pass').toString();
-    console.log(mnemonic);
-    before(async () => {
-        web3 = await makeWeb3();
+    let optionAddress, option;
+    let blockNoExpiry = latestBlock() + 1000;
+    let blockTimestamp = latestTime() + duration.weeks(5);
+
+    before(async()=> {
         baseToken = await BaseToken.new();
         quoteToken = await QuoteToken.new();
-        blockNoExpiry = (await latestBlock())+ 1000;
-        blockTimestamp = await latestTime() + duration.weeks(5);
-        
+
         // Allocating tokens
         await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(18)), buyer);
         await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(18)), seller);
@@ -76,9 +72,6 @@ contract('Option', accounts =>{
         txReturn.logs[0].args._creator.should.equal(buyer);
         optionAddress = txReturn.logs[0].args._optionAddress;
         option = Option.at(optionAddress);
-
-        // PutOption = new web3.eth.Contract([Option], optionAddress);
-        // console.log(PutOption);
         
     });
 
@@ -86,7 +79,6 @@ contract('Option', accounts =>{
         it('should all variables intialized succesfully', async () => {
             assert.equal(await option.baseToken.call(), baseToken.address);
             assert.equal(await option.quoteToken.call(), quoteToken.address);
-    
             assert.equal(await option.strikePrice.call(), strikePrice.toNumber());
         });
     });
@@ -103,8 +95,13 @@ contract('Option', accounts =>{
         });
 
         it('issueOption: Should successfully issue option -- fail because blockNoExpiry is less than current block no.', async () => {
-            await quoteToken.approve(option.address, new BigNumber(assetoffered * strikePrice).times(new BigNumber(10).pow(18)), { from : buyer });
-            const blockNo = ((await latestBlock()) - 10);
+            await quoteToken.approve(option.address,
+                new BigNumber(assetoffered * strikePrice)
+                .times(new BigNumber(10).pow(18)),
+                {
+                    from : buyer 
+                });
+            const blockNo = 5;
 
             try {
                 let txReturn = await option.issueOption(assetoffered, premium, blockNo, { from : tempAccount });
@@ -114,22 +111,28 @@ contract('Option', accounts =>{
         });     
         
         it('issueOption: Should successfully issue option -- fail because premium is 0', async () => {
-            await quoteToken.approve(option.address, new BigNumber(assetoffered * strikePrice).times(new BigNumber(10).pow(18)), { from : buyer });
-            const blockNo = ((await latestBlock()) - 10);
-
+            await quoteToken.approve(option.address,
+                new BigNumber(assetoffered * strikePrice)
+                .times(new BigNumber(10).pow(18)),
+                {
+                    from : buyer 
+                });
             try {
-                let txReturn = await option.issueOption(assetoffered, 0, blockNo, { from : tempAccount });
+                let txReturn = await option.issueOption(assetoffered, 0, blockNoExpiry, { from : tempAccount });
             } catch(error) {
                 ensureException(error);
             }
         });
         
         it('issueOption: Should successfully issue option', async () => {
-            await quoteToken.approve(option.address, new BigNumber(assetoffered * strikePrice).times(new BigNumber(10).pow(18)), { from : buyer });
-        
+            await quoteToken.approve(option.address,
+                new BigNumber(assetoffered * strikePrice)
+                .times(new BigNumber(10).pow(18)),
+                {
+                    from : buyer 
+                });
             let txReturn = await option.issueOption(assetoffered, premium, blockNoExpiry, { from : buyer });
             let balance = await option.balanceOf(option.address);
-            console.log(balance.toNumber());
             assert.isTrue(await option.isOptionIssued.call());
             tokenProxy = TokenProxy.at(await option.tokenProxy.call());
         });
@@ -167,18 +170,18 @@ contract('Option', accounts =>{
             await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
             await option.approve(option.address, amount, { from: seller });
             let balance = await quoteToken.balanceOf(tokenProxy.address);
-            console.log(balance.toNumber());
             let data = await tokenProxy.QT.call();
-            console.log(data);
             const txReturn = await option.exerciseOption(amount, { from : seller, gas: 4500000 });
-            console.log(txReturn);
+            txReturn.logs[0].args._to.should.equal(seller);
+            txReturn.logs[0].args._value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount * strikePrice.toNumber());
+            txReturn.logs[1].args._from.should.equal(seller);
+            txReturn.logs[1].args._to.should.equal(buyer);
+            txReturn.logs[1].args._value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount);
+            txReturn.logs[2].args._from.should.equal(seller);
+            txReturn.logs[2].args._value.toNumber().should.equal(amount);
+            txReturn.logs[3].args._amount.toNumber().should.equal(amount);
         });
 
-        it('distributionStakes: Should transfer the stakes', async ()=> {
-            await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
-            const tx = await tokenProxy.distributeStakes(seller, new BigNumber(amount).times(new BigNumber(10).pow(18)));
-            console.log(tx.receipt.logs);
-        });
     });
 
 

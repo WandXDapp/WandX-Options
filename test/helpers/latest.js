@@ -4,7 +4,7 @@ export function latestTime () {
   }
 
 export function latestBlock () {
-  return web3.eth.getBlock('latest').number;
+    return web3.eth.getBlock('latest').number;
 }
 
 export default { latestTime, latestBlock };
