@@ -2,8 +2,10 @@ pragma solidity ^0.4.18;
 
 import './interfaces/IOption.sol';
 import './interfaces/IERC20.sol';
+import './interfaces/IProxy.sol';
 import './helpers/math/SafeMath.sol';
 import './Proxy.sol';
+import './OptionDumper.sol';
 
 contract Option is IOption {
 
@@ -13,6 +15,7 @@ contract Option is IOption {
     IERC20 public QT;
     IProxy public proxy;
     address public tokenProxy;
+    address public optionDumperAddress;
 
     address public buyer;
     address public baseToken;
@@ -85,8 +88,8 @@ contract Option is IOption {
         require(_premium > 0);
         require(expirationDate >= now);
         require(_expiry > block.number);
-        tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer);
-        proxy = IProxy(tokenProxy);
+        require(createProxy(_expiry));
+        optionDumperAddress = new OptionDumper(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
         uint256 assets = _assetsOffered * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
         require(QT.transferFrom(buyer, tokenProxy, assets)); 
@@ -99,6 +102,12 @@ contract Option is IOption {
         LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
+    function createProxy(uint256 _expiry) internal returns(bool) {
+        tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer, optionDumperAddress);
+        require(addressHasCode(tokenProxy));
+        proxy = IProxy(tokenProxy);
+        return true;
+    }
 
     /**
      * @dev `incOffering` Use to generate the more option supply in between the time boundation of the option
@@ -134,7 +143,6 @@ contract Option is IOption {
         return true;
     }
     
-    event LogA(uint256 _amount);
     /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
      * @param _amount no. of option trader want to exercise
@@ -145,10 +153,9 @@ contract Option is IOption {
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
         uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
-        LogA(amount);
         require(proxy.distributeStakes(msg.sender, amount));
         // Provide allowance to this by the trader
-        require(this.transferFrom(msg.sender, 0x0, _amount)); 
+        require(this.transferFrom(msg.sender, optionDumperAddress, _amount)); 
         Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
         LogOptionsExcercised(msg.sender, _amount, now);
         return true;
@@ -162,6 +169,14 @@ contract Option is IOption {
         require(proxy.withdrawal());
         return true;
     }
+
+    function addressHasCode(address _contract) internal view returns (bool) {
+       uint size;
+       assembly {
+           size := extcodesize(_contract)
+       }
+       return size > 0;
+   }
 
     ///////////////////////////////////
     //// Get Functions
@@ -191,11 +206,15 @@ contract Option is IOption {
       * @return Whether the transfer was successful or not 
       */
     function transfer(address _to, uint256 _value) public returns (bool) {
+        require(_to != address(0));
+        require(_value <= balances[msg.sender]);
+
+        // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
         Transfer(msg.sender, _to, _value);
         return true;
-    }
+  }
 
     /** 
      * @dev send `_value` token to `_to` from `_from` on the condition it is approved by `_from`
