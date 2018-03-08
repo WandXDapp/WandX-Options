@@ -33,27 +33,29 @@ contract('Option', accounts => {
     let optionAddress, option;
     let blockNoExpiry = latestBlock() + 1000;
     let blockTimestamp = latestTime() + duration.weeks(5);
+    const b_decimal = 18;
+    const q_decimal = 18;
 
     before(async()=> {
         baseToken = await BaseToken.new();
         quoteToken = await QuoteToken.new();
 
         // Allocating tokens
-        await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(18)), buyer);
-        await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(18)), seller);
-        await baseToken.getTokens(new BigNumber(1000).times(new BigNumber(10).pow(18)), seller);
+        await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(q_decimal)), buyer);
+        await quoteToken.getTokens(new BigNumber(100000).times(new BigNumber(10).pow(q_decimal)), seller);
+        await baseToken.getTokens(new BigNumber(1000).times(new BigNumber(10).pow(b_decimal)), seller);
 
         optionStorage = await OptionStorage.new(owner);
 
-        derivativeFactory = await DerivativeFactory.new(optionStorage.address, quoteToken.address, { from : owner, gas : 3000000 });
+        derivativeFactory = await DerivativeFactory.new(optionStorage.address, quoteToken.address, { from : owner, gas : 4000000 });
 
         await derivativeFactory.setOrgAccount(orgAccount, { from: owner });
         await optionStorage.setOptionFactoryAddress(derivativeFactory.address, { from : owner });
 
-        await quoteToken.approve(derivativeFactory.address, new BigNumber(100).times(new BigNumber(10).pow(18)), { from : buyer });
+        await quoteToken.approve(derivativeFactory.address, new BigNumber(100).times(new BigNumber(10).pow(q_decimal)), { from : buyer });
         
         let allowedAmount = await quoteToken.allowance(buyer, derivativeFactory.address);
-        assert.equal(allowedAmount.dividedBy(new BigNumber(10).pow(18)).toNumber(), 100);
+        assert.equal(allowedAmount.dividedBy(new BigNumber(10).pow(q_decimal)).toNumber(), 100);
         
         let data = await derivativeFactory.getOptionFee();
         assert.equal(data.dividedBy(new BigNumber(10).pow(18)).toNumber(), 100);
@@ -61,6 +63,8 @@ contract('Option', accounts => {
         let txReturn = await derivativeFactory.createNewOption(
             baseToken.address,
             quoteToken.address,
+            b_decimal,
+            q_decimal,
             strikePrice,
             blockTimestamp,
             {
@@ -85,7 +89,7 @@ contract('Option', accounts => {
 
     describe('issueOption', async () => {
         it('issueOption: Should successfully issue option -- fail msg.sender is not buyer', async () => {
-            await quoteToken.approve(option.address, new BigNumber(assetoffered * strikePrice).times(new BigNumber(10).pow(18)), { from : buyer });
+            await quoteToken.approve(option.address, new BigNumber(assetoffered * strikePrice).times(new BigNumber(10).pow(q_decimal)), { from : buyer });
             
             try {
                 let txReturn = await option.issueOption(assetoffered, premium, blockNoExpiry, { from : tempAccount });
@@ -97,7 +101,7 @@ contract('Option', accounts => {
         it('issueOption: Should successfully issue option -- fail because blockNoExpiry is less than current block no.', async () => {
             await quoteToken.approve(option.address,
                 new BigNumber(assetoffered * strikePrice)
-                .times(new BigNumber(10).pow(18)),
+                .times(new BigNumber(10).pow(q_decimal)),
                 {
                     from : buyer 
                 });
@@ -113,7 +117,7 @@ contract('Option', accounts => {
         it('issueOption: Should successfully issue option -- fail because premium is 0', async () => {
             await quoteToken.approve(option.address,
                 new BigNumber(assetoffered * strikePrice)
-                .times(new BigNumber(10).pow(18)),
+                .times(new BigNumber(10).pow(q_decimal)),
                 {
                     from : buyer 
                 });
@@ -127,7 +131,7 @@ contract('Option', accounts => {
         it('issueOption: Should successfully issue option', async () => {
             await quoteToken.approve(option.address,
                 new BigNumber(assetoffered * strikePrice)
-                .times(new BigNumber(10).pow(18)),
+                .times(new BigNumber(10).pow(q_decimal)),
                 {
                     from : buyer 
                 });
@@ -157,7 +161,7 @@ contract('Option', accounts => {
         });
 
         it('tradeOption: Should successfully buy the option', async () => {
-            await quoteToken.approve(option.address, new BigNumber(amount * premium).times(new BigNumber(10).pow(18)), { from: seller });
+            await quoteToken.approve(option.address, new BigNumber(amount * premium).times(new BigNumber(10).pow(q_decimal)), { from: seller });
             await option.tradeOption(seller, amount, { from: seller });
             const data = await option.Traders(seller);
             assert.equal(data[0].toNumber(), amount);
@@ -167,7 +171,7 @@ contract('Option', accounts => {
 
     describe('exerciseOption', async () => {
         it('exerciseOption: Should successfully excercise option', async () => {
-            await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(18)), { from: seller });
+            await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(b_decimal)), { from: seller });
             await option.approve(option.address, amount, { from: seller });
             let balance = await quoteToken.balanceOf(tokenProxy.address);
             let data = await tokenProxy.QT.call();

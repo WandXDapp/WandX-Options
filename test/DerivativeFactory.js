@@ -25,6 +25,8 @@ contract('DerivativeFactory', accounts => {
     const strikePrice = new BigNumber(40).times(new BigNumber(10).pow(18));
     let blockNoExpiry = latestBlock() + 100;
     let blockTimestamp = latestTime() + duration.weeks(5);
+    const b_decimal = 18;
+    const q_decimal = 18;
     
     before(async() => {
         baseToken = await BaseToken.new();
@@ -33,7 +35,7 @@ contract('DerivativeFactory', accounts => {
 
     beforeEach(async () => {
         optionStorage = await OptionStorage.new(owner);
-        derivativeFactory = await DerivativeFactory.new(optionStorage.address, quoteToken.address, { from : owner, gas : 3000000 });
+        derivativeFactory = await DerivativeFactory.new(optionStorage.address, quoteToken.address, { from : owner, gas : 4000000 });
         await derivativeFactory.setOrgAccount(orgAccount, { from: owner });
         await optionStorage.setOptionFactoryAddress(derivativeFactory.address, { from : owner });
     });
@@ -52,6 +54,8 @@ contract('DerivativeFactory', accounts => {
             let txReturn = await derivativeFactory.createNewOption(
                 baseToken.address,
                 quoteToken.address,
+                b_decimal,
+                q_decimal,
                 strikePrice,
                 blockTimestamp,
                 {
@@ -77,6 +81,8 @@ contract('DerivativeFactory', accounts => {
                 let txReturn = await derivativeFactory.createNewOption(
                     0x0,
                     0x0,
+                    b_decimal,
+                    q_decimal,
                     strikePrice,
                     blockTimestamp,
                     {
@@ -103,6 +109,8 @@ contract('DerivativeFactory', accounts => {
                 let txReturn = await derivativeFactory.createNewOption(
                     baseToken.address,
                     quoteToken.address,
+                    b_decimal,
+                    q_decimal,
                     0,
                     blockTimestamp,
                     {
