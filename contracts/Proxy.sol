@@ -3,20 +3,25 @@ pragma solidity ^0.4.18;
 import './interfaces/IERC20.sol';
 import './interfaces/IProxy.sol';
 import './interfaces/IOptionDumper.sol';
+import './interfaces/IOption.sol';
+import './helpers/math/SafeMath.sol';
 
 contract Proxy is IProxy {
 
+    using SafeMath for uint256;
+
     IERC20 public BT;
     IERC20 public QT;
+    IOption public option;
     IOptionDumper public optionDumper;
-    address public option;
+    address public optionAddress;
     address public buyer;
     uint256 public optionsExpiry;
     uint256 public strikePrice;
 
 
     modifier onlyOption() {
-        require(msg.sender == option);
+        require(msg.sender == optionAddress);
         _;
     }
 
@@ -30,7 +35,8 @@ contract Proxy is IProxy {
      * @param _dumper Address of the contract that use to dump the option assets
      */
     function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer, address _dumper) public {
-        option = msg.sender;
+        optionAddress = msg.sender;
+        option = IOption(optionAddress);
         BT = IERC20(_baseToken);
         QT = IERC20(_quoteToken); 
         optionDumper = IOptionDumper(_dumper);
@@ -46,9 +52,11 @@ contract Proxy is IProxy {
      * @return bool success
      */
     function distributeStakes(address _to, uint256 _amount) onlyOption public returns (bool success) {
-        uint256 amount = _amount * strikePrice;
-        require(QT.transfer(_to, amount));
-        require(BT.transferFrom(_to, buyer, _amount));
+        var (b,q) = option.getOptionTokenDecimals();
+        uint256 _baseAmount = _amount.mul(10 ** uint256(b));
+        uint256 _quoteAmount = strikePrice.mul(_amount.mul(10 ** uint256(q)));
+        require(QT.transfer(_to, _quoteAmount));
+        require(BT.transferFrom(_to, buyer, _baseAmount));
         return true; 
     }
 

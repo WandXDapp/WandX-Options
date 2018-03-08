@@ -7,7 +7,7 @@ import './helpers/math/SafeMath.sol';
 import './Proxy.sol';
 import './OptionDumper.sol';
 
-contract Option is IOption {
+contract Option is IOption, IERC20 {
 
     using SafeMath for uint256;
 
@@ -23,15 +23,16 @@ contract Option is IOption {
     uint256 public strikePrice;
     uint256 public expirationDate;
 
-    uint256 public assetsOffered;
+    uint256 public totalSupply_;
     uint256 public premium;
     uint256 public expiry;
     bool public isOptionIssued = false;
 
     uint8 public decimals = 0;
-    uint8 public constant DECIMAL_FACTOR = 18;
+    uint8 public B_DECIMAL_FACTOR;
+    uint8 public Q_DECIMAL_FACTOR;
     mapping(address => uint256) balances;
-    mapping(address => mapping(address => uint256)) allowed;
+    mapping(address => mapping(address => uint256)) internal allowed;
 
     // Notifications
     event Transfer(address indexed _from, address indexed _to, uint256 _value);
@@ -58,7 +59,9 @@ contract Option is IOption {
 
     function Option( 
         address _baseToken, 
-        address _quoteToken, 
+        address _quoteToken,
+        uint8 _baseTokenDecimal,
+        uint8 _quoteTokenDecimal, 
         uint256 _strikePrice,
         uint256 _expirationDate,
         address _buyer
@@ -72,6 +75,8 @@ contract Option is IOption {
         quoteToken = _quoteToken;
         strikePrice = _strikePrice;
         expirationDate = _expirationDate;
+        B_DECIMAL_FACTOR = _baseTokenDecimal;
+        Q_DECIMAL_FACTOR = _quoteTokenDecimal;
         BT = IERC20(baseToken);
         QT = IERC20(quoteToken);
     }
@@ -91,14 +96,14 @@ contract Option is IOption {
         require(createProxy(_expiry));
         optionDumperAddress = new OptionDumper(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
-        uint256 assets = _assetsOffered * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        uint256 assets = _assetsOffered.mul(strikePrice * 10 ** uint256(Q_DECIMAL_FACTOR));
         require(QT.transferFrom(buyer, tokenProxy, assets)); 
         balances[this] = _assetsOffered;
-        assetsOffered = _assetsOffered;
+        totalSupply_ = _assetsOffered;
         premium = _premium;
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
-        Transfer(0x0, this, _assetsOffered);
+        Transfer(address(0), this, _assetsOffered);
         LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
@@ -117,12 +122,12 @@ contract Option is IOption {
         require(msg.sender == buyer);
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
-        uint256 extraOffering = _extraOffering * strikePrice * 10 ** uint256(DECIMAL_FACTOR);
+        uint256 extraOffering = _extraOffering.mul(strikePrice * 10 ** uint256(Q_DECIMAL_FACTOR));
         require(QT.transferFrom(buyer, tokenProxy, extraOffering));
-        assetsOffered = assetsOffered.add(_extraOffering);
+        totalSupply_ = totalSupply_.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
-        Transfer(0x0, this, _extraOffering);
-        LogOptionsIssued(assetsOffered, expiry, premium, tokenProxy);
+        Transfer(address(0), this, _extraOffering);
+        LogOptionsIssued(totalSupply_, expiry, premium, tokenProxy);
     }
 
     /**
@@ -135,7 +140,7 @@ contract Option is IOption {
         require(_amount > 0);
         require(_trader != address(0));
         require(expiry > block.number);
-        uint256 amount = _amount * premium * 10 ** uint256(DECIMAL_FACTOR);
+        uint256 amount = _amount.mul(premium * 10 ** uint256(Q_DECIMAL_FACTOR));
         require(QT.transferFrom(_trader, tokenProxy, amount));
         require(this.transfer(_trader,_amount));
         Traders[_trader] = traderData(_amount,false);
@@ -152,8 +157,7 @@ contract Option is IOption {
         require(_amount > 0);
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
-        uint256 amount = _amount * 10 ** uint256(DECIMAL_FACTOR);
-        require(proxy.distributeStakes(msg.sender, amount));
+        require(proxy.distributeStakes(msg.sender, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, optionDumperAddress, _amount)); 
         Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
@@ -191,18 +195,32 @@ contract Option is IOption {
             strikePrice,
             expiry,
             premium,
-            assetsOffered
+            totalSupply_
         );
     } 
+
+    function getOptionTokenDecimals() view public returns (uint8, uint8) {
+        return (
+            B_DECIMAL_FACTOR,
+            Q_DECIMAL_FACTOR
+        );
+    }
+
+    /**
+     * @notice  Reference from zeppelin-solidity
+                https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/token/ERC20/StandardToken.sol
+                https://github.com/OpenZeppelin/zeppelin-solidity/blob/master/contracts/token/ERC20/BasicToken.sol
+     * 
+     */
 
     //////////////////////////////////
     ////// ERC20 functions
     /////////////////////////////////
 
      /** 
-      * @dev send `_value` token to `_to` from `msg.sender`
+      * @dev send `_value` option assets to `_to` from `msg.sender`
       * @param _to The address of the recipient
-      * @param _value The amount of token to be transferred
+      * @param _value The amount of option assets to be transferred
       * @return Whether the transfer was successful or not 
       */
     function transfer(address _to, uint256 _value) public returns (bool) {
@@ -217,10 +235,10 @@ contract Option is IOption {
   }
 
     /** 
-     * @dev send `_value` token to `_to` from `_from` on the condition it is approved by `_from`
+     * @dev send `_value` option assets to `_to` from `_from` on the condition it is approved by `_from`
      * @param _from The address of the sender
      * @param _to The address of the recipient
-     * @param _value The amount of token to be transferred
+     * @param _value The amount of option assets to be transferred
      * @return Whether the transfer was successful or not 
      */
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool) {
@@ -236,7 +254,7 @@ contract Option is IOption {
     }
 
     /**
-     * @dev `balanceOf` function used to read the balance of the token holder
+     * @dev `balanceOf` function used to read the balance of the option assets holder
      * @param _owner The address from which the balance will be retrieved
      * @return The balance 
      */
@@ -245,9 +263,9 @@ contract Option is IOption {
     }
 
     /** 
-     * @dev `msg.sender` approves `_spender` to spend `_value` tokens
-     * @param _spender The address of the account able to transfer the tokens
-     * @param _value The amount of tokens to be approved for transfer
+     * @dev `msg.sender` approves `_spender` to spend `_value` option assets
+     * @param _spender The address of the account able to transfer the option assets
+     * @param _value The amount of option assets to be approved for transfer
      * @return Whether the approval was successful or not 
      */
     function approve(address _spender, uint256 _value) public returns (bool) {
@@ -258,13 +276,56 @@ contract Option is IOption {
 
     /** 
      * @dev `allowance`
-     * @param _owner The address of the account owning tokens
-     * @param _spender The address of the account able to transfer the tokens
-     * @return Amount of remaining tokens allowed to spent 
+     * @param _owner The address of the account owning option assets
+     * @param _spender The address of the account able to transfer the option assets
+     * @return Amount of remaining option assets allowed to spent 
      */
     function allowance(address _owner, address _spender) public view returns (uint256 remaining) {
         return allowed[_owner][_spender];
     }
 
+    /**
+    * @dev Increase the amount of option assets that an owner allowed to a spender.
+    *
+    * approve should be called when allowed[_spender] == 0. To increment
+    * allowed value is better to use this function to avoid 2 calls (and wait until
+    * the first transaction is mined)
+    * From MonolithDAO Token.sol
+    * @param _spender The address which will spend the funds.
+    * @param _addedValue The amount of option assets to increase the allowance by.
+    */
+  function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
+    allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
+    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    return true;
+  }
+
+  /**
+   * @dev Decrease the amount of option assets that an owner allowed to a spender.
+   *
+   * approve should be called when allowed[_spender] == 0. To decrement
+   * allowed value is better to use this function to avoid 2 calls (and wait until
+   * the first transaction is mined)
+   * From MonolithDAO Token.sol
+   * @param _spender The address which will spend the funds.
+   * @param _subtractedValue The amount of option assets to decrease the allowance by.
+   */
+  function decreaseApproval(address _spender, uint _subtractedValue) public returns (bool) {
+    uint oldValue = allowed[msg.sender][_spender];
+    if (_subtractedValue > oldValue) {
+      allowed[msg.sender][_spender] = 0;
+    } else {
+      allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
+    }
+    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    return true;
+  }
+
+  /**
+  * @dev total number of options assets in existence
+  */
+  function totalSupply() public view returns (uint256) {
+    return totalSupply_;
+  }
 
 }

@@ -30,7 +30,8 @@
     "truffle-wallet-provider": "^0.0.5",
     "web3": "^1.0.0-beta.30",
     "xtend": "4.0.1",
-    "yargs": "8.0.2"
+    "yargs": "8.0.2",
+    "zeppelin-solidity": "1.7.0"
   },
   "scripts": {
     "test": "testrpc -l 1000000000 & truffle test",
