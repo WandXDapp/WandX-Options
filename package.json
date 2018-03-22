@@ -1,6 +1,6 @@
 {
   "name": "wandx-options",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Repository to facilitate the options feature for trading ERC20 token using wandx protocol",
   "main": "truffle.js",
   "directories": {
