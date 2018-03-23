@@ -1,6 +1,6 @@
 {
   "name": "wandx-options",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "Repository to facilitate the options feature for trading ERC20 token using wandx protocol",
   "main": "truffle.js",
   "directories": {
@@ -41,10 +41,10 @@
     "coverage": "./node_modules/.bin/solidity-coverage",
     "flatten": "sol-merger './contracts/*.sol' ./flat",
     "flatten-storage": "sol-merger './contracts/storage/*.sol' ./flat/flatStorage",
-    "migrate-dev": "truffle migrate --network=development",
+    "migrate-dev": "truffle migrate --network=development --reset --all",
     "migrate-ropsten": "truffle migrate --network=ropsten",
     "migrate-main": "truffle migrate --network=main",
-    "flatten-dummytoken": "sol-merger ‘./test/mock_contracts/*.sol’ ./test/mock_contracts/flat",
+    "flatten-dummytoken": "sol-merger './test/mock_contracts/*.sol' ./test/mock_contracts/flat",
     "compile-dummytoken": "npm run flatten-dummytoken && node ./test/helpers/compile_dummytoken"
   },
   "keywords": [
