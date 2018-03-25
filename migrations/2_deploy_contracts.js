@@ -31,12 +31,16 @@ return deployer.deploy(WandXTokenFaucet).then(() => {
                  return deployer.deploy(DerivativeFactory , OptionStorage.address, WandXTokenFaucet.address, { from: ownerAddress }).then(() => {
                     return DerivativeFactory.at(DerivativeFactory.address).then((I_DerivativeFactory) => {
                       return I_DerivativeFactory.setOrgAccount(OrgAccount, { from : ownerAddress }).then(() => {
-                            console.log(`\nWandX-Options smart contract get deployed:\n
-                                WandXTokenFaucet: ${WandXTokenFaucet.address}\n
-                                LDerivativeFactory: ${LDerivativeFactory.address}\n
-                                DerivativeFactory: ${DerivativeFactory.address}\n
-                                OptionStorage: ${OptionStorage.address}\n
-                            `);
+                          return OptionStorage.at(OptionStorage.address).then((I_OptionStorage) => {
+                              return I_OptionStorage.setOptionFactoryAddress(DerivativeFactory.address, { from: ownerAddress}).then(() =>{
+                                    console.log(`\nWandX-Options smart contract get deployed:\n
+                                    WandXTokenFaucet: ${WandXTokenFaucet.address}\n
+                                    LDerivativeFactory: ${LDerivativeFactory.address}\n
+                                    DerivativeFactory: ${DerivativeFactory.address}\n
+                                    OptionStorage: ${OptionStorage.address}\n
+                                    `);
+                                });
+                            });
                         });
                     });
                  });

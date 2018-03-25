@@ -40,7 +40,7 @@
     "coverage": "./node_modules/.bin/solidity-coverage",
     "flatten": "sol-merger './contracts/*.sol' ./flat",
     "flatten-storage": "sol-merger './contracts/storage/*.sol' ./flat/flatStorage",
-    "migrate-dev": "truffle migrate --network=development",
+    "migrate-dev": "truffle migrate --network=development --reset --all",
     "migrate-ropsten": "truffle migrate --network=ropsten",
     "migrate-main": "truffle migrate --network=main"
   },
