@@ -10,7 +10,6 @@ interface IDerivativeFactory {
  * @param _quoteTokenDecimal Decimal places of the quoteToken
  * @param _strikePrice Price at which buyer will obligate to buy the base token
  * @param _blockTimestamp Unix timestamp to expire the option
- * @return bool
  */
 function createNewOption(
     address _baseToken,
@@ -20,7 +19,6 @@ function createNewOption(
     uint256 _strikePrice,
     uint256 _blockTimestamp
 ) 
-external 
-returns (bool); 
+external;
 
 }

@@ -153,9 +153,8 @@ interface IOption {
      * @dev `tradeOption` This function use to buy the option
      * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
-     * @return bool
      */
-    function tradeOption(address _trader, uint256 _amount) external returns (bool);
+    function tradeOption(address _trader, uint256 _amount) external;
     
      /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
@@ -388,16 +387,11 @@ contract Proxy is IProxy {
 }
 
 contract OptionDumper {
-    
-    address public proxyContract;
 
-    function OptionDumper(address _proxy) public {
-        require(_proxy != address(0));
-        proxyContract = _proxy;
+    function OptionDumper() public {
     } 
 
    function dumpOption () public {
-        require(proxyContract == msg.sender);
         // Selfdestruct  
         selfdestruct(address(this));
     }
@@ -407,9 +401,6 @@ contract Option is IOption, IERC20 {
 
     using SafeMath for uint256;
 
-    IERC20 public BT;
-    IERC20 public QT;
-    IProxy public proxy;
     address public tokenProxy;
     address public optionDumperAddress;
 
@@ -437,12 +428,12 @@ contract Option is IOption, IERC20 {
     event LogOptionsTrade(address indexed _trader, uint256 _amount, uint256 _timestamp);
     event LogOptionsExcercised(address indexed _trader, uint256 _amount, uint256 _timestamp);
 
-    struct traderData {
+    struct TraderData {
         uint256 optionQuantity;
         bool status;                        // false when it doesn't excercise the full option Quantity, True when fully excercised 
     }
 
-    mapping(address => traderData) public Traders;
+    mapping(address => TraderData) public Traders;
 
     modifier onlyBuyer() {
         require(msg.sender == buyer);
@@ -473,8 +464,6 @@ contract Option is IOption, IERC20 {
         expirationDate = _expirationDate;
         B_DECIMAL_FACTOR = _baseTokenDecimal;
         Q_DECIMAL_FACTOR = _quoteTokenDecimal;
-        BT = IERC20(baseToken);
-        QT = IERC20(quoteToken);
     }
 
     /**
@@ -483,17 +472,15 @@ contract Option is IOption, IERC20 {
      * @param _premium Amount to be paid by the trader to buy the option
      * @param _expiry Timestamp when option get expired
      */
-    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) public {
+    function issueOption(uint256 _assetsOffered, uint256 _premium, uint256 _expiry) onlyBuyer public {
         require(isOptionIssued == false);
-        require(msg.sender == buyer);
-        require(_premium > 0);
         require(expirationDate >= now);
         require(_expiry > block.number);
+        optionDumperAddress = new OptionDumper();
         require(createProxy(_expiry));
-        optionDumperAddress = new OptionDumper(tokenProxy);
         // Allowance for the option contract is necessary allowed[buyer][this] = _optionsOffered
         uint256 assets = _assetsOffered.mul(strikePrice * 10 ** uint256(Q_DECIMAL_FACTOR));
-        require(QT.transferFrom(buyer, tokenProxy, assets)); 
+        require(IERC20(quoteToken).transferFrom(buyer, tokenProxy, assets)); 
         balances[this] = _assetsOffered;
         totalSupply_ = _assetsOffered;
         premium = _premium;
@@ -505,8 +492,6 @@ contract Option is IOption, IERC20 {
 
     function createProxy(uint256 _expiry) internal returns(bool) {
         tokenProxy = new Proxy(baseToken, quoteToken, _expiry, strikePrice, buyer, optionDumperAddress);
-        require(addressHasCode(tokenProxy));
-        proxy = IProxy(tokenProxy);
         return true;
     }
 
@@ -519,7 +504,7 @@ contract Option is IOption, IERC20 {
         require(expiry > now);
         // Allowance for the option contract is necessary allowed[buyer][this] = _extraOffering
         uint256 extraOffering = _extraOffering.mul(strikePrice * 10 ** uint256(Q_DECIMAL_FACTOR));
-        require(QT.transferFrom(buyer, tokenProxy, extraOffering));
+        require(IERC20(quoteToken).transferFrom(buyer, tokenProxy, extraOffering));
         totalSupply_ = totalSupply_.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         Transfer(address(0), this, _extraOffering);
@@ -530,18 +515,16 @@ contract Option is IOption, IERC20 {
      * @dev `tradeOption` This function use to buy the option
      * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
-     * @return bool
      */
-    function tradeOption(address _trader, uint256 _amount) external returns(bool) {
+    function tradeOption(address _trader, uint256 _amount) external {
         require(_amount > 0);
         require(_trader != address(0));
         require(expiry > block.number);
         uint256 amount = _amount.mul(premium * 10 ** uint256(Q_DECIMAL_FACTOR));
-        require(QT.transferFrom(_trader, tokenProxy, amount));
+        require(IERC20(quoteToken).transferFrom(_trader, tokenProxy, amount));
         require(this.transfer(_trader,_amount));
-        Traders[_trader] = traderData(_amount,false);
+        Traders[_trader] = TraderData(_amount,false);
         LogOptionsTrade(_trader, _amount, now);
-        return true;
     }
     
     /**
@@ -553,7 +536,7 @@ contract Option is IOption, IERC20 {
         require(_amount > 0);
         require(expiry >= block.number);      
         require(this.balanceOf(msg.sender) >= _amount);
-        require(proxy.distributeStakes(msg.sender, _amount));
+        require(IProxy(tokenProxy).distributeStakes(msg.sender, _amount));
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, optionDumperAddress, _amount)); 
         Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
@@ -566,17 +549,9 @@ contract Option is IOption, IERC20 {
      * @return bool
      */
     function withdrawTokens() onlyBuyer external returns(bool) {
-        require(proxy.withdrawal());
+        require(IProxy(tokenProxy).withdrawal());
         return true;
     }
-
-    function addressHasCode(address _contract) internal view returns (bool) {
-       uint size;
-       assembly {
-           size := extcodesize(_contract)
-       }
-       return size > 0;
-   }
 
     ///////////////////////////////////
     //// Get Functions
@@ -741,10 +716,10 @@ contract DerivativeFactory is Ownable {
     using LDerivativeFactory for address;
     string public version = "0.1";
     address DT_Store;
-    IERC20 WAND;
+    address public wandTokenAddress;
 
     // Notifications
-    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address _optionAddress, address indexed _creator);
+    event LogOptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address _optionAddress, address indexed _creator);
 
     /**
      * @dev Constructor
@@ -753,7 +728,7 @@ contract DerivativeFactory is Ownable {
      */
     function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
        DT_Store = _storageAddress;
-       WAND = IERC20(_tokenAddress);
+       wandTokenAddress = _tokenAddress;
        DT_Store.setNewOptionFee(100 * 10 ** 18);
        owner = msg.sender;
     }
@@ -766,7 +741,6 @@ contract DerivativeFactory is Ownable {
      * @param _quoteTokenDecimal Decimal places of the quoteToken
      * @param _strikePrice Price at which buyer will obligate to buy the base token
      * @param _blockTimestamp Unix timestamp to expire the option
-     * @return bool
      */
     function createNewOption(
         address _baseToken,
@@ -777,16 +751,14 @@ contract DerivativeFactory is Ownable {
         uint256 _blockTimestamp
     ) 
     external 
-    returns (bool) 
     {   
         address orgAccount = DT_Store.getOrgAccount();
         uint256 _fee = DT_Store.getNewOptionFee();
         // Before creation creator should have to pay the service fee to wandx Platform
-        require(WAND.transferFrom(msg.sender, orgAccount, _fee));
+        require(IERC20(wandTokenAddress).transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _baseTokenDecimal, _quoteTokenDecimal, _strikePrice, _blockTimestamp, msg.sender);    
-        DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
-        OptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
-        return true;
+        // DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
+        LogOptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
     }
 
     function changeNewOptionFee(uint256 _newFee) onlyOwner public {
