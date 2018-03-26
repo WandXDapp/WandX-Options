@@ -15,10 +15,10 @@ contract DerivativeFactory is Ownable {
     using LDerivativeFactory for address;
     string public version = "0.1";
     address DT_Store;
-    IERC20 WAND;
+    address public wandTokenAddress;
 
     // Notifications
-    event OptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address _optionAddress, address indexed _creator);
+    event LogOptionCreated(address _baseToken, address _quoteToken, uint256 _blockTimestamp, address _optionAddress, address indexed _creator);
 
     /**
      * @dev Constructor
@@ -27,7 +27,7 @@ contract DerivativeFactory is Ownable {
      */
     function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
        DT_Store = _storageAddress;
-       WAND = IERC20(_tokenAddress);
+       wandTokenAddress = _tokenAddress;
        DT_Store.setNewOptionFee(100 * 10 ** 18);
        owner = msg.sender;
     }
@@ -40,7 +40,6 @@ contract DerivativeFactory is Ownable {
      * @param _quoteTokenDecimal Decimal places of the quoteToken
      * @param _strikePrice Price at which buyer will obligate to buy the base token
      * @param _blockTimestamp Unix timestamp to expire the option
-     * @return bool
      */
     function createNewOption(
         address _baseToken,
@@ -51,16 +50,14 @@ contract DerivativeFactory is Ownable {
         uint256 _blockTimestamp
     ) 
     external 
-    returns (bool) 
     {   
         address orgAccount = DT_Store.getOrgAccount();
         uint256 _fee = DT_Store.getNewOptionFee();
         // Before creation creator should have to pay the service fee to wandx Platform
-        require(WAND.transferFrom(msg.sender, orgAccount, _fee));
+        require(IERC20(wandTokenAddress).transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _baseTokenDecimal, _quoteTokenDecimal, _strikePrice, _blockTimestamp, msg.sender);    
-        DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
-        OptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
-        return true;
+        // DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
+        LogOptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
     }
 
     function changeNewOptionFee(uint256 _newFee) onlyOwner public {
