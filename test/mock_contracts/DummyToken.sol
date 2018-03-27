@@ -1,71 +1,20 @@
 pragma solidity ^0.4.18;
 
-/// @title Math operations with safety checks
-library SafeMath {
-    function mul(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a * b;
-        assert(a == 0 || c / a == b);
-        return c;
-    }
-
-    function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        // assert(b > 0); // Solidity automatically throws when dividing by 0
-        uint256 c = a / b;
-        return c;
-    }
-
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        assert(b <= a);
-        return a - b;
-    }
-
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        assert(c >= a);
-        return c;
-    }
-
-    function max64(uint64 a, uint64 b) internal pure returns (uint64) {
-        return a >= b ? a : b;
-    }
-
-    function min64(uint64 a, uint64 b) internal pure returns (uint64) {
-        return a < b ? a : b;
-    }
-
-    function max256(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a >= b ? a : b;
-    }
-
-    function min256(uint256 a, uint256 b) internal pure returns (uint256) {
-        return a < b ? a : b;
-    }
-}
-
-/// ERC Token Standard #20 Interface (https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20-token-standard.md)
-interface IERC20 {
-    function totalSupply() public view returns (uint256);
-    function balanceOf(address _owner) public view returns (uint256 balance);
-    function transfer(address _to, uint256 _value) public returns (bool success);
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success);
-    function approve(address _spender, uint256 _value) public returns (bool success);
-    function allowance(address _owner, address _spender) public view returns (uint256 remaining);
-    event Transfer(address indexed _from, address indexed _to, uint256 _value);
-    event Approval(address indexed _owner, address indexed _spender, uint256 _value);
-}
+import '../../contracts/helpers/math/SafeMath.sol';
+import '../../contracts/interfaces/IERC20.sol';
 
 /*
  SBT token faucet is only used on testnet for testing purposes
  !!!! NOT INTENDED TO BE USED ON MAINNET !!!
 */
 
-contract BaseToken is IERC20 {
+contract <contract_name> is IERC20 {
 
     using SafeMath for uint256;
     uint256 public totalSupply = 1000000 * 10 ** 18;
-    string public name = "SecureBlocks";
-    uint8 public decimals = 18;
-    string public symbol = "SBT";
+    string public name = "<token_name>";
+    uint8 public decimals = <token_decimals>;
+    string public symbol = "<token_symbol>";
 
     mapping(address => uint256) balances;
     mapping(address => mapping(address => uint256)) allowed;
