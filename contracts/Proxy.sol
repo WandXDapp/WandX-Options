@@ -66,11 +66,9 @@ contract Proxy is IProxy {
      */
     function withdrawal() onlyOption public returns (bool success) {
         require(block.number > optionsExpiry);
-        uint256 balanceBT = BT.balanceOf(this);
-        uint256 balanceQT = QT.balanceOf(this);
-        require(BT.transfer(buyer, balanceBT));
-        require(QT.transfer(buyer, balanceQT));
-        optionDumper.dumpOption();
+        require(BT.transfer(buyer, BT.balanceOf(address(this))));
+        require(QT.transfer(buyer, QT.balanceOf(address(this))));
+        require(optionDumper.dumpOption());
         return true;
     }
 

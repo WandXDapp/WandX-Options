@@ -8,10 +8,10 @@ Decentralized Creation and trade of Put Options on ERC20 Tokens.
 
 | Contract                                                         | Address                                                                                                                       |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [DerivativeFactory](./contracts/DerivativeFactory.sol) | [0x4343f4d9ec10530756e5063d1adb0ebb07960830](https://ropsten.etherscan.io/address/0x4343f4d9ec10530756e5063d1adb0ebb07960830) |
-| [OptionStorage](./contracts/storage/OptionStorage.sol) | [0xbd945ca856a64ab1717e3193743a91e8fcf97e94](https://ropsten.etherscan.io/address/0xbd945ca856a64ab1717e3193743a91e8fcf97e94) |
-| [LDerivativeFactory](./contracts/libraries/LDerivativeFactory.sol) | [0xefe0657ebc2f40b64581c83ef6d9c62620b80246](https://ropsten.etherscan.io/address/0xefe0657ebc2f40b64581c83ef6d9c62620b80246)|
-| [WandXTokenFaucet](./contracts/libraries/WandXTokenFaucet.sol) | [0x0f3d9b57601262c1eacb0c9c21fab1a9d83a40ad](https://ropsten.etherscan.io/address/0x0f3d9b57601262c1eacb0c9c21fab1a9d83a40ad)|
+| [DerivativeFactory](./contracts/DerivativeFactory.sol) | [0x5d8a7ab353001516364e92a0a0eaa703901b76fb](https://ropsten.etherscan.io/address/0x5d8a7ab353001516364e92a0a0eaa703901b76fb) |
+| [OptionStorage](./contracts/storage/OptionStorage.sol) | [0xaaf27301b3ad5453e7b0b8ab83c903008f39ed7a](https://ropsten.etherscan.io/address/0xaaf27301b3ad5453e7b0b8ab83c903008f39ed7a) |
+| [LDerivativeFactory](./contracts/libraries/LDerivativeFactory.sol) | [0x8886829552fc69174e44fefb216c5b4280437694](https://ropsten.etherscan.io/address/0x8886829552fc69174e44fefb216c5b4280437694)|
+| [WandXTokenFaucet](./contracts/libraries/WandXTokenFaucet.sol) | [0x21188796274f2b8b4f409337f8373d8c393f02bf](https://ropsten.etherscan.io/address/0x21188796274f2b8b4f409337f8373d8c393f02bf)|
 
 
 ## Setup

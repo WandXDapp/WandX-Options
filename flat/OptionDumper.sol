@@ -5,8 +5,9 @@ contract OptionDumper {
     function OptionDumper() public {
     } 
 
-   function dumpOption () public {
+   function dumpOption () public returns(bool) {
         // Selfdestruct  
         selfdestruct(address(this));
+        return true;
     }
 }
