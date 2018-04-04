@@ -1,8 +1,10 @@
 const fs = require("fs");
 const solc = require("solc");
 let Web3 = require('web3');
+let dummyTokenInfo = require("../../build/dummyTokenInfo.json");
 
 let tokens = [ 
+    { name: 'WANDX', decimals: 18, symbol: 'WANDX', deployed: false },
     { name: 'ETH', decimals: 18, symbol: 'ETH', deployed: false },
     { name: 'WINGS', decimals: 18, symbol: 'WINGS', deployed: false },
     { name: 'DNT', decimals: 18, symbol: 'DNT', deployed: false },
@@ -28,16 +30,15 @@ let tokens = [
 let web3 = new Web3();
 web3.setProvider(new web3.providers.HttpProvider('http://localhost:8545'));
 
-console.log("Reading Test Token Contracts");
 var mockContracts = {
     'DummyToken.sol': fs.readFileSync('./test/mock_contracts/flat/DummyToken.sol', 'utf8'),
     'BaseToken.sol': fs.readFileSync('./test/mock_contracts/flat/BaseToken.sol', 'utf8'),
     'QuoteToken.sol': fs.readFileSync('./test/mock_contracts/flat/QuoteToken.sol', 'utf8')    
 };
 
-var dummyContracts = {};
 
 console.log("Creating dummy contracts for tokens");
+var dummyContracts = {};
 tokens.forEach(function(token){
     let contract = mockContracts['DummyToken.sol'];
     contract = contract.replace('<contract_name>', token.name.toUpperCase());
@@ -46,14 +47,11 @@ tokens.forEach(function(token){
     contract = contract.replace('<token_symbol>', token.symbol);
     dummyContracts[token.name] = contract;
 });
-
-console.log("Compiling Contracts");
 let compiledContract = solc.compile({sources: dummyContracts}, 1);
 
-console.log("Getting default address")
 web3.eth.getAccounts((err, accs) => {
     let defaultAddress = accs[0];
-    console.log("Deploying contract with adress", defaultAddress);
+    console.log("Deploying contract with address", defaultAddress);
     
     tokens.forEach(function(token){
         let tokenAbi = compiledContract.contracts[token.name + ":" + token.name.toUpperCase()].interface;
@@ -73,7 +71,6 @@ web3.eth.getAccounts((err, accs) => {
         .on('receipt', function(receipt){ })
         .on('confirmation', function(confirmationNumber, receipt){  })
         .then(function(newContractInstance){
-            console.log(token.name + " deployed with contractAddress", newContractInstance.options.address);
             token['address'] = newContractInstance.options.address;
             token['deployed'] = true;
             saveTokenInFile();
@@ -94,12 +91,18 @@ function saveTokenInFile(){
     });
 
     if(allDeployed == true){
-        console.log(tokens);
-        var stream = fs.createWriteStream("./build/dummyTokenInfo.json");
-        stream.once('open', function(fd) {
-            stream.write(JSON.stringify(tokens));
-            stream.end();
+
+        tokens.forEach(function(token){
+            dummyTokenInfo.forEach(function(dummyToken){
+                if(dummyToken.name == token.name){
+                    dummyToken.address['15'] = token.address;
+                }
+            })
         });
-        console.log("All tokens updated to ./build/dummyTokenInfo.json");
+
+        fs.writeFile("./build/dummyTokenInfo.json", JSON.stringify(dummyTokenInfo), function (err) {
+            if (err) return console.log(err);
+            console.log("All tokens updated to ./build/dummyTokenInfo.json");
+        });
     }
 };
