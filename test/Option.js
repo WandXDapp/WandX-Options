@@ -188,5 +188,13 @@ contract('Option', accounts => {
 
     });
 
+    // describe("Withdraw function", async() =>{
+    //     it("Should withdraw the remianing token from the option contract", async() => {
+    //         await option.withdrawTokens({ from: buyer });
+    //         let buyerBal = await baseToken.balanceOf(buyer);
+    //         console.log(buyerBal.dividedBy(new BigNumber(10).pow(18)).toNumber());
+    //     });
+    // });
+
 
 });
