@@ -18,10 +18,9 @@ interface IOption {
 
     /**
      * @dev `tradeOption` This function use to buy the option
-     * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
      */
-    function tradeOption(address _trader, uint256 _amount) external;
+    function tradeOption(uint256 _amount) external;
     
      /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again

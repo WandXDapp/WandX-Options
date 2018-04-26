@@ -34,8 +34,8 @@ contract Ownable {
    */
   function transferOwnership(address newOwner) public onlyOwner {
     require(newOwner != address(0));
-    OwnershipTransferred(owner, newOwner);
     owner = newOwner;
+    emit OwnershipTransferred (owner, newOwner);
   }
 
 }
@@ -44,14 +44,8 @@ contract OptionStorage is Ownable {
     
     address public optionFactory;
 
-    struct OptionsData {
-        bool expiryStatus;
-        uint256 blockNoExpiry;  // Block No.
-        address owner;
-    } 
-
     // mapping to track the list of options created by any writer 
-    mapping(address => OptionsData) public listOfOptions;
+    mapping(address => address) public listOfOptions;
     mapping (bytes32 => uint256) public localUintVariables;
     mapping (bytes32 => address) public localAddressVariables;
 
@@ -60,7 +54,7 @@ contract OptionStorage is Ownable {
         _;
     }
 
-    function OptionStorage(address _ownerAddress) public {
+    constructor (address _ownerAddress) public {
         owner = _ownerAddress;
     }
 
@@ -68,16 +62,16 @@ contract OptionStorage is Ownable {
     /// Set Functions
     ////////////////////////
 
-    function setUintValues(bytes32 _name, uint256 _value) public {
+    function setUintValues(bytes32 _name, uint256 _value) public onlyOptionFactory {
         localUintVariables[_name] = _value;
     }
 
-    function setAddressValues(bytes32 _name, address _value) public {
+    function setAddressValues(bytes32 _name, address _value) public onlyOptionFactory {
         localAddressVariables[_name] = _value;
     }
 
-    function setOptionFactoryData(bool _status, uint256 _blockTimestamp, address _owner, address _optionAddress) onlyOptionFactory public {
-        listOfOptions[_optionAddress] = OptionsData(_status, _blockTimestamp, _owner);
+    function setOptionFactoryData(address _owner, address _optionAddress) onlyOptionFactory public {
+        listOfOptions[_optionAddress] = _owner;
     }
 
     function setOptionFactoryAddress(address _optionFactory) onlyOwner public {
@@ -108,8 +102,8 @@ library LDerivativeFactory {
         return OptionStorage(_storageContract).getUintValues(keccak256("fee"));
     }
 
-    function setOptionFactoryData(address _storageContract, bool _status, uint256 _expiry, address _owner, address _optionAddress) public {
-        OptionStorage(_storageContract).setOptionFactoryData(_status, _expiry, _owner, _optionAddress);
+    function setOptionFactoryData(address _storageContract, address _owner, address _optionAddress) public {
+        OptionStorage(_storageContract).setOptionFactoryData(_owner, _optionAddress);
     }
 
     function setNewOptionFee(address _storageContract, uint256 _fee) public {
@@ -151,10 +145,9 @@ interface IOption {
 
     /**
      * @dev `tradeOption` This function use to buy the option
-     * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
      */
-    function tradeOption(address _trader, uint256 _amount) external;
+    function tradeOption(uint256 _amount) external;
     
      /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
@@ -344,7 +337,14 @@ contract Proxy is IProxy {
      * @param _buyer Address of the buyer
      * @param _dumper Address of the contract that use to dump the option assets
      */
-    function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer, address _dumper) public {
+    constructor (
+        address _baseToken,
+        address _quoteToken,
+        uint256 _expiry,
+        uint256 _strikePrice,
+        address _buyer,
+        address _dumper
+    ) public {
         optionAddress = msg.sender;
         option = IOption(optionAddress);
         BT = IERC20(_baseToken);
@@ -386,7 +386,7 @@ contract Proxy is IProxy {
 
 contract OptionDumper {
 
-    function OptionDumper() public {
+    constructor () public {
     } 
 
    function dumpOption () public returns(bool) {
@@ -443,7 +443,7 @@ contract Option is IOption, IERC20 {
      * @dev `Option` Constructor
      */
 
-    function Option( 
+    constructor ( 
         address _baseToken, 
         address _quoteToken,
         uint8 _baseTokenDecimal,
@@ -486,7 +486,7 @@ contract Option is IOption, IERC20 {
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
         Transfer(address(0), this, _assetsOffered);
-        LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
+        emit LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
     function createProxy(uint256 _expiry) internal returns(bool) {
@@ -507,23 +507,21 @@ contract Option is IOption, IERC20 {
         totalSupply_ = totalSupply_.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         Transfer(address(0), this, _extraOffering);
-        LogOptionsIssued(totalSupply_, expiry, premium, tokenProxy);
+        emit LogOptionsIssued(totalSupply_, expiry, premium, tokenProxy);
     }
 
     /**
      * @dev `tradeOption` This function use to buy the option
-     * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
      */
-    function tradeOption(address _trader, uint256 _amount) external {
+    function tradeOption(uint256 _amount) external {
         require(_amount > 0);
-        require(_trader != address(0));
         require(expiry > block.number);
         uint256 amount = _amount.mul(premium * 10 ** uint256(Q_DECIMAL_FACTOR));
-        require(IERC20(quoteToken).transferFrom(_trader, tokenProxy, amount));
-        require(this.transfer(_trader,_amount));
-        Traders[_trader] = TraderData(_amount,false);
-        LogOptionsTrade(_trader, _amount, now);
+        require(IERC20(quoteToken).transferFrom(msg.sender, tokenProxy, amount));
+        require(this.transfer(msg.sender,_amount));
+        Traders[msg.sender] = TraderData(_amount,false);
+        emit LogOptionsTrade(msg.sender, _amount, now);
     }
     
     /**
@@ -539,7 +537,7 @@ contract Option is IOption, IERC20 {
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, optionDumperAddress, _amount)); 
         Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
-        LogOptionsExcercised(msg.sender, _amount, now);
+        emit LogOptionsExcercised(msg.sender, _amount, now);
         return true;
     }
 
@@ -600,7 +598,7 @@ contract Option is IOption, IERC20 {
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
-        Transfer(msg.sender, _to, _value);
+        emit Transfer(msg.sender, _to, _value);
         return true;
   }
 
@@ -619,7 +617,7 @@ contract Option is IOption, IERC20 {
       balances[_from] = balances[_from].sub(_value);
       balances[_to] = balances[_to].add(_value);
       allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-      Transfer(_from, _to, _value);
+      emit Transfer(_from, _to, _value);
       return true;
     }
 
@@ -640,7 +638,7 @@ contract Option is IOption, IERC20 {
      */
     function approve(address _spender, uint256 _value) public returns (bool) {
         allowed[msg.sender][_spender] = _value;
-        Approval(msg.sender, _spender, _value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -666,7 +664,7 @@ contract Option is IOption, IERC20 {
     */
   function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
     allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
 
@@ -687,7 +685,7 @@ contract Option is IOption, IERC20 {
     } else {
       allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
     }
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
 
@@ -732,7 +730,7 @@ contract DerivativeFactory is Ownable {
      * @param _storageAddress Address of the storage contract
      * @param _tokenAddress Address of the token which used as the transaction fee    
      */
-    function DerivativeFactory(address _storageAddress, address _tokenAddress) public {
+    constructor (address _storageAddress, address _tokenAddress) public {
         DT_Store = _storageAddress;
         wandTokenAddress = _tokenAddress;
         DT_Store.setNewOptionFee(100 * 10 ** 18);
@@ -763,8 +761,8 @@ contract DerivativeFactory is Ownable {
         // Before creation creator should have to pay the service fee to wandx Platform
         require(IERC20(wandTokenAddress).transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _baseTokenDecimal, _quoteTokenDecimal, _strikePrice, _blockTimestamp, msg.sender);    
-        DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
-        emit LogOptionCreated(_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
+        DT_Store.setOptionFactoryData(msg.sender, _optionAddress);
+        emit LogOptionCreated (_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
     }
 
     function changeNewOptionFee(uint256 _newFee) public onlyOwner {

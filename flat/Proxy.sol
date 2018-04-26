@@ -53,10 +53,9 @@ interface IOption {
 
     /**
      * @dev `tradeOption` This function use to buy the option
-     * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
      */
-    function tradeOption(address _trader, uint256 _amount) external;
+    function tradeOption(uint256 _amount) external;
     
      /**
      * @dev `exerciseOption` This function use to excercise the option means to sell the option to the owner again
@@ -223,7 +222,14 @@ contract Proxy is IProxy {
      * @param _buyer Address of the buyer
      * @param _dumper Address of the contract that use to dump the option assets
      */
-    function Proxy(address _baseToken, address _quoteToken, uint256 _expiry, uint256 _strikePrice, address _buyer, address _dumper) public {
+    constructor (
+        address _baseToken,
+        address _quoteToken,
+        uint256 _expiry,
+        uint256 _strikePrice,
+        address _buyer,
+        address _dumper
+    ) public {
         optionAddress = msg.sender;
         option = IOption(optionAddress);
         BT = IERC20(_baseToken);

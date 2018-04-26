@@ -10,8 +10,8 @@ library LDerivativeFactory {
         return OptionStorage(_storageContract).getUintValues(keccak256("fee"));
     }
 
-    function setOptionFactoryData(address _storageContract, bool _status, uint256 _expiry, address _owner, address _optionAddress) public {
-        OptionStorage(_storageContract).setOptionFactoryData(_status, _expiry, _owner, _optionAddress);
+    function setOptionFactoryData(address _storageContract, address _owner, address _optionAddress) public {
+        OptionStorage(_storageContract).setOptionFactoryData(_owner, _optionAddress);
     }
 
     function setNewOptionFee(address _storageContract, uint256 _fee) public {

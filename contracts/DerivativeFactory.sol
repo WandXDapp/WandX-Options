@@ -32,7 +32,7 @@ contract DerivativeFactory is Ownable {
      * @param _storageAddress Address of the storage contract
      * @param _tokenAddress Address of the token which used as the transaction fee    
      */
-    constructor(address _storageAddress, address _tokenAddress) public {
+    constructor (address _storageAddress, address _tokenAddress) public {
         DT_Store = _storageAddress;
         wandTokenAddress = _tokenAddress;
         DT_Store.setNewOptionFee(100 * 10 ** 18);
@@ -63,7 +63,7 @@ contract DerivativeFactory is Ownable {
         // Before creation creator should have to pay the service fee to wandx Platform
         require(IERC20(wandTokenAddress).transferFrom(msg.sender, orgAccount, _fee));
         address _optionAddress = new Option(_baseToken, _quoteToken, _baseTokenDecimal, _quoteTokenDecimal, _strikePrice, _blockTimestamp, msg.sender);    
-        DT_Store.setOptionFactoryData(false, _blockTimestamp, msg.sender, _optionAddress);
+        DT_Store.setOptionFactoryData(msg.sender, _optionAddress);
         emit LogOptionCreated (_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
     }
 

@@ -97,7 +97,7 @@ contract Option is IOption, IERC20 {
         expiry = _expiry;
         isOptionIssued = !isOptionIssued;
         Transfer(address(0), this, _assetsOffered);
-        LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
+        emit LogOptionsIssued(_assetsOffered, expiry, premium, tokenProxy);
     }
 
     function createProxy(uint256 _expiry) internal returns(bool) {
@@ -118,23 +118,21 @@ contract Option is IOption, IERC20 {
         totalSupply_ = totalSupply_.add(_extraOffering);
         balances[this] = balances[this].add(_extraOffering);
         Transfer(address(0), this, _extraOffering);
-        LogOptionsIssued(totalSupply_, expiry, premium, tokenProxy);
+        emit LogOptionsIssued(totalSupply_, expiry, premium, tokenProxy);
     }
 
     /**
      * @dev `tradeOption` This function use to buy the option
-     * @param _trader Address of the buyer who buy the option
      * @param _amount No. of option trader buy
      */
-    function tradeOption(address _trader, uint256 _amount) external {
+    function tradeOption(uint256 _amount) external {
         require(_amount > 0);
-        require(_trader != address(0));
         require(expiry > block.number);
         uint256 amount = _amount.mul(premium * 10 ** uint256(Q_DECIMAL_FACTOR));
-        require(IERC20(quoteToken).transferFrom(_trader, tokenProxy, amount));
-        require(this.transfer(_trader,_amount));
-        Traders[_trader] = TraderData(_amount,false);
-        LogOptionsTrade(_trader, _amount, now);
+        require(IERC20(quoteToken).transferFrom(msg.sender, tokenProxy, amount));
+        require(this.transfer(msg.sender,_amount));
+        Traders[msg.sender] = TraderData(_amount,false);
+        emit LogOptionsTrade(msg.sender, _amount, now);
     }
     
     /**
@@ -150,7 +148,7 @@ contract Option is IOption, IERC20 {
         // Provide allowance to this by the trader
         require(this.transferFrom(msg.sender, optionDumperAddress, _amount)); 
         Traders[msg.sender].optionQuantity = Traders[msg.sender].optionQuantity.sub(_amount);
-        LogOptionsExcercised(msg.sender, _amount, now);
+        emit LogOptionsExcercised(msg.sender, _amount, now);
         return true;
     }
 
@@ -211,7 +209,7 @@ contract Option is IOption, IERC20 {
         // SafeMath.sub will throw if there is not enough balance.
         balances[msg.sender] = balances[msg.sender].sub(_value);
         balances[_to] = balances[_to].add(_value);
-        Transfer(msg.sender, _to, _value);
+        emit Transfer(msg.sender, _to, _value);
         return true;
   }
 
@@ -230,7 +228,7 @@ contract Option is IOption, IERC20 {
       balances[_from] = balances[_from].sub(_value);
       balances[_to] = balances[_to].add(_value);
       allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-      Transfer(_from, _to, _value);
+      emit Transfer(_from, _to, _value);
       return true;
     }
 
@@ -251,7 +249,7 @@ contract Option is IOption, IERC20 {
      */
     function approve(address _spender, uint256 _value) public returns (bool) {
         allowed[msg.sender][_spender] = _value;
-        Approval(msg.sender, _spender, _value);
+        emit Approval(msg.sender, _spender, _value);
         return true;
     }
 
@@ -277,7 +275,7 @@ contract Option is IOption, IERC20 {
     */
   function increaseApproval(address _spender, uint _addedValue) public returns (bool) {
     allowed[msg.sender][_spender] = allowed[msg.sender][_spender].add(_addedValue);
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
 
@@ -298,7 +296,7 @@ contract Option is IOption, IERC20 {
     } else {
       allowed[msg.sender][_spender] = oldValue.sub(_subtractedValue);
     }
-    Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
+    emit Approval(msg.sender, _spender, allowed[msg.sender][_spender]);
     return true;
   }
 
