@@ -17,7 +17,6 @@ module.exports =  function(deployer, network, accounts) {
       else if (network == 'ropsten') {
         web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/g5xfoQ0jFSE9S5LwM1Ei"));
         ownerAddress = accounts[0];
-        console.log(ownerAddress);
       }
       else if (network == 'mainnet') {
         web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/g5xfoQ0jFSE9S5LwM1Ei"));

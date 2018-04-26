@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import './interfaces/IOption.sol';
 import './interfaces/IERC20.sol';
@@ -54,7 +54,7 @@ contract Option is IOption, IERC20 {
      * @dev `Option` Constructor
      */
 
-    function Option( 
+    constructor ( 
         address _baseToken, 
         address _quoteToken,
         uint8 _baseTokenDecimal,

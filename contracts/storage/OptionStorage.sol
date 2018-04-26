@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import '../helpers/Ownable.sol';
 
@@ -22,7 +22,7 @@ contract OptionStorage is Ownable {
         _;
     }
 
-    function OptionStorage(address _ownerAddress) public {
+    constructor (address _ownerAddress) public {
         owner = _ownerAddress;
     }
 
