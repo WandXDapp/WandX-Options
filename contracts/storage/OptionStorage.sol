@@ -24,15 +24,15 @@ contract OptionStorage is Ownable {
     /// Set Functions
     ////////////////////////
 
-    function setUintValues(bytes32 _name, uint256 _value) public onlyOptionFactory {
+    function setUintValues(bytes32 _name, uint256 _value) public {
         localUintVariables[_name] = _value;
     }
 
-    function setAddressValues(bytes32 _name, address _value) public onlyOptionFactory {
+    function setAddressValues(bytes32 _name, address _value) public {
         localAddressVariables[_name] = _value;
     }
 
-    function setOptionFactoryData(address _owner, address _optionAddress) onlyOptionFactory public {
+    function setOptionFactoryData(address _owner, address _optionAddress) public {
         listOfOptions[_optionAddress] = _owner;
     }
 
