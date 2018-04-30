@@ -1,10 +1,9 @@
 pragma solidity ^0.4.23;
 
-import './helpers/math/SafeMath.sol';
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 /*
- WAND token faucet is only used on testnet for testing purposes
- !!!! NOT INTENDED TO BE USED ON MAINNET !!!
+ WAND token faucet is only used for testing purposes
 */
 
 contract WandXTokenFaucet {

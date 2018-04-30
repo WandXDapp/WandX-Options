@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-import '../helpers/Ownable.sol';
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 contract OptionStorage is Ownable {
     

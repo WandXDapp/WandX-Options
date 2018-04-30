@@ -1,6 +1,6 @@
 pragma solidity ^0.4.23;
 
-interface IOption {
+contract IOption {
 
    /**
     * @dev `issueOption` Use to issue option or generate the option called only by the owner of the option
@@ -41,7 +41,6 @@ interface IOption {
 
     function getOptionDetails() view public returns (address, address, address, address, uint256, uint256, uint256, uint256);
 
-    function getOptionTokenDecimals() view public returns (uint8, uint8);
 
     //////////////////////////////////
     ////// ERC20 functions

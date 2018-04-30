@@ -8,7 +8,7 @@ pragma solidity ^0.4.23;
 import "./libraries/LDerivativeFactory.sol";
 import "./interfaces/IERC20.sol";
 import "./Option.sol";
-import "./helpers/Ownable.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract DerivativeFactory is Ownable {
@@ -22,7 +22,6 @@ contract DerivativeFactory is Ownable {
     event LogOptionCreated(
         address _baseToken,
         address _quoteToken,
-        uint256 _blockTimestamp,
         address _optionAddress,
         address indexed _creator
     );
@@ -43,18 +42,12 @@ contract DerivativeFactory is Ownable {
      * @dev Function use to create the new option contract
      * @param _baseToken Address of the Base token
      * @param _quoteToken Address of the Quote token
-     * @param _baseTokenDecimal Decimal places of the baseToken
-     * @param _quoteTokenDecimal Decimal places of the quoteToken
      * @param _strikePrice Price at which buyer will obligate to buy the base token
-     * @param _blockTimestamp Unix timestamp to expire the option
      */
     function createNewOption(
         address _baseToken,
         address _quoteToken,
-        uint8 _baseTokenDecimal,
-        uint8 _quoteTokenDecimal,
-        uint256 _strikePrice,
-        uint256 _blockTimestamp
+        uint256 _strikePrice
     ) 
     external 
     {   
@@ -62,9 +55,9 @@ contract DerivativeFactory is Ownable {
         uint256 _fee = DT_Store.getNewOptionFee();
         // Before creation creator should have to pay the service fee to wandx Platform
         require(IERC20(wandTokenAddress).transferFrom(msg.sender, orgAccount, _fee));
-        address _optionAddress = new Option(_baseToken, _quoteToken, _baseTokenDecimal, _quoteTokenDecimal, _strikePrice, _blockTimestamp, msg.sender);    
+        address _optionAddress = new Option(_baseToken, _quoteToken, _strikePrice, msg.sender);    
         DT_Store.setOptionFactoryData(msg.sender, _optionAddress);
-        emit LogOptionCreated (_baseToken, _quoteToken, _blockTimestamp, _optionAddress, msg.sender);
+        emit LogOptionCreated (_baseToken, _quoteToken, _optionAddress, msg.sender);
     }
 
     function changeNewOptionFee(uint256 _newFee) public onlyOwner {

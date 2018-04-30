@@ -1,17 +1,15 @@
 pragma solidity ^0.4.18;
 
-import '../../contracts/helpers/math/SafeMath.sol';
-import '../../contracts/interfaces/IERC20.sol';
+import "zeppelin-solidity/contracts/math/SafeMath.sol";
 
 /*
- SBT token faucet is only used on testnet for testing purposes
- !!!! NOT INTENDED TO BE USED ON MAINNET !!!
+ TESTING CONTRACTS
 */
 
-contract BaseToken is IERC20 {
+contract BaseToken {
 
     using SafeMath for uint256;
-    uint256 public totalSupply = 1000000 * 10 ** 18;
+    uint256 public totalSupply = 100000000 * 10 ** 18;
     string public name = "SecureBlocks";
     uint8 public decimals = 18;
     string public symbol = "SBT";
