@@ -4,7 +4,7 @@ import './interfaces/IERC20.sol';
 import './interfaces/IProxy.sol';
 import './interfaces/IOptionDumper.sol';
 import './interfaces/IOption.sol';
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 contract Proxy is IProxy {
 

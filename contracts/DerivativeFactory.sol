@@ -8,7 +8,7 @@ pragma solidity ^0.4.23;
 import "./libraries/LDerivativeFactory.sol";
 import "./interfaces/IERC20.sol";
 import "./Option.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 contract DerivativeFactory is Ownable {

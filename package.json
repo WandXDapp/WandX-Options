@@ -1,6 +1,6 @@
 {
   "name": "wandx-options",
-  "version": "0.2.3",
+  "version": "1.0.0",
   "description": "Repository to facilitate the options feature for trading ERC20 token using wandx protocol",
   "main": "truffle.js",
   "directories": {
@@ -13,7 +13,7 @@
     "solc": "0.4.23",
     "solidity-coverage": "0.4.7",
     "truffle": "4.1.7",
-    "zeppelin-solidity": "^1.9.0"
+    "openzeppelin-solidity": "^1.9.0"
   },
   "dependencies": {
     "babel-polyfill": "6.26.0",

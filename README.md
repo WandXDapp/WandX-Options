@@ -8,10 +8,10 @@ Decentralized Creation and trade of Put Options on ERC20 Tokens.
 
 | Contract                                                         | Address                                                                                                                       |
 | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| [DerivativeFactory](./contracts/DerivativeFactory.sol) | [0x5d8a7ab353001516364e92a0a0eaa703901b76fb](https://ropsten.etherscan.io/address/0x5d8a7ab353001516364e92a0a0eaa703901b76fb) |
-| [OptionStorage](./contracts/storage/OptionStorage.sol) | [0xaaf27301b3ad5453e7b0b8ab83c903008f39ed7a](https://ropsten.etherscan.io/address/0xaaf27301b3ad5453e7b0b8ab83c903008f39ed7a) |
-| [LDerivativeFactory](./contracts/libraries/LDerivativeFactory.sol) | [0x8886829552fc69174e44fefb216c5b4280437694](https://ropsten.etherscan.io/address/0x8886829552fc69174e44fefb216c5b4280437694)|
-| [WandXTokenFaucet](./contracts/libraries/WandXTokenFaucet.sol) | [0x21188796274f2b8b4f409337f8373d8c393f02bf](https://ropsten.etherscan.io/address/0x21188796274f2b8b4f409337f8373d8c393f02bf)|
+| [DerivativeFactory](./contracts/DerivativeFactory.sol) | [0x9e15552159827179dd6119a7466480628def6809](https://ropsten.etherscan.io/address/0x9e15552159827179dd6119a7466480628def6809) |
+| [OptionStorage](./contracts/storage/OptionStorage.sol) | [0x5d0df45e7a1a6944ab0926fb4537a9b9d59aea17](https://ropsten.etherscan.io/address/0x5d0df45e7a1a6944ab0926fb4537a9b9d59aea17) |
+| [LDerivativeFactory](./contracts/libraries/LDerivativeFactory.sol) | [0xab9b06661de7743d8f363e37c829be358694de16](https://ropsten.etherscan.io/address/0xab9b06661de7743d8f363e37c829be358694de16)|
+| [WandXTokenFaucet](./contracts/libraries/WandXTokenFaucet.sol) | [0xe0af3bc5a8821a909db48ffd56f8e09e7b967282](https://ropsten.etherscan.io/address/0xe0af3bc5a8821a909db48ffd56f8e09e7b967282)|
 
 
 ## Setup
@@ -41,8 +41,8 @@ $ npm run test
 The WandX-Options repo follows the style guide overviewed here:
 http://solidity.readthedocs.io/en/develop/style-guide.html
 
-[wandx]: https://wandx.co
-[ethereum]: https://www.ethereum.org/
-[solidity]: https://solidity.readthedocs.io/en/develop/
-[truffle]: http://truffleframework.com/
-[testrpc]: https://github.com/ethereumjs/testrpc
+- [wandx](https://wandx.co)
+- [ethereum](https://www.ethereum.org/)
+- [solidity](https://solidity.readthedocs.io/en/develop/)
+- [truffle](http://truffleframework.com/)
+- [testrpc](https://github.com/ethereumjs/testrpc)

@@ -24,10 +24,7 @@ contract('DerivativeFactory', accounts => {
     //New Option
     const strikePrice = new BigNumber(40).times(new BigNumber(10).pow(18));
     let blockNoExpiry = latestBlock() + 100;
-    let blockTimestamp = latestTime() + duration.weeks(5);
-    const b_decimal = 18;
-    const q_decimal = 18;
-    
+
     before(async() => {
         baseToken = await BaseToken.new();
         quoteToken = await QuoteToken.new();
@@ -41,6 +38,7 @@ contract('DerivativeFactory', accounts => {
     });
 
     describe('Test Cases for the createNewOption function', async () => {
+
         it('createNewOption: Should successfully create the new option', async () => {
             await quoteToken.getTokens(new BigNumber(1000).times(new BigNumber(10).pow(18)), buyer);
             await quoteToken.approve(derivativeFactory.address, new BigNumber(100).times(new BigNumber(10).pow(18)), { from : buyer });
@@ -54,10 +52,7 @@ contract('DerivativeFactory', accounts => {
             let txReturn = await derivativeFactory.createNewOption(
                 baseToken.address,
                 quoteToken.address,
-                b_decimal,
-                q_decimal,
                 strikePrice,
-                blockTimestamp,
                 {
                     from : buyer,
                     gas : 4000000
@@ -81,10 +76,7 @@ contract('DerivativeFactory', accounts => {
                 let txReturn = await derivativeFactory.createNewOption(
                     0x0,
                     0x0,
-                    b_decimal,
-                    q_decimal,
                     strikePrice,
-                    blockTimestamp,
                     {
                         from : buyer,
                         gas : 4000000
@@ -109,10 +101,7 @@ contract('DerivativeFactory', accounts => {
                 let txReturn = await derivativeFactory.createNewOption(
                     baseToken.address,
                     quoteToken.address,
-                    b_decimal,
-                    q_decimal,
                     0,
-                    blockTimestamp,
                     {
                         from : buyer,
                         gas : 4000000

@@ -4,8 +4,8 @@ import "./Proxy.sol";
 import "./interfaces/IOption.sol";
 import "./interfaces/IProxy.sol";
 import "./OptionDumper.sol";
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 
 contract Option is IOption, StandardToken {

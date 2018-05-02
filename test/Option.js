@@ -63,10 +63,7 @@ contract('Option', accounts => {
         let txReturn = await derivativeFactory.createNewOption(
             baseToken.address,
             quoteToken.address,
-            b_decimal,
-            q_decimal,
             strikePrice,
-            blockTimestamp,
             {
                 from : buyer,
                 gas : 4000000
@@ -145,7 +142,7 @@ contract('Option', accounts => {
     describe('tradeOption', async () => {
         it('tradeOption: Should successfully buy the option --fail because approval is not provided', async () => {
             try {
-                await option.tradeOption(seller, amount, { from: seller });
+                await option.tradeOption(amount, { from: seller });
             } catch(error) {
                 ensureException(error);
             }
@@ -154,7 +151,7 @@ contract('Option', accounts => {
         it('tradeOption: Should successfully buy the option --fail because amount = 0', async () => {
             await quoteToken.approve(option.address, amount * premium, { from: seller });
             try {
-                await option.tradeOption(seller, 0, { from: seller });
+                await option.tradeOption(0, { from: seller });
             } catch(error) {
                 ensureException(error);
             }
@@ -162,7 +159,7 @@ contract('Option', accounts => {
 
         it('tradeOption: Should successfully buy the option', async () => {
             await quoteToken.approve(option.address, new BigNumber(amount * premium).times(new BigNumber(10).pow(q_decimal)), { from: seller });
-            await option.tradeOption(seller, amount, { from: seller });
+            await option.tradeOption(amount, { from: seller });
             const data = await option.Traders(seller);
             assert.equal(data[0].toNumber(), amount);
             assert.equal(await option.balanceOf(seller), amount);
@@ -174,15 +171,14 @@ contract('Option', accounts => {
             await baseToken.approve(tokenProxy.address, new BigNumber(amount).times(new BigNumber(10).pow(b_decimal)), { from: seller });
             await option.approve(option.address, amount, { from: seller });
             let balance = await quoteToken.balanceOf(tokenProxy.address);
-            let data = await tokenProxy.QT.call();
             const txReturn = await option.exerciseOption(amount, { from : seller, gas: 4500000 });
-            txReturn.logs[0].args._to.should.equal(seller);
-            txReturn.logs[0].args._value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount * strikePrice.toNumber());
-            txReturn.logs[1].args._from.should.equal(seller);
-            txReturn.logs[1].args._to.should.equal(buyer);
-            txReturn.logs[1].args._value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount);
-            txReturn.logs[2].args._from.should.equal(seller);
-            txReturn.logs[2].args._value.toNumber().should.equal(amount);
+            txReturn.logs[0].args.to.should.equal(seller);
+            txReturn.logs[0].args.value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount * strikePrice.toNumber());
+            txReturn.logs[1].args.from.should.equal(seller);
+            txReturn.logs[1].args.to.should.equal(buyer);
+            txReturn.logs[1].args.value.dividedBy(new BigNumber(10).pow(18)).toNumber().should.equal(amount);
+            txReturn.logs[2].args.from.should.equal(seller);
+            txReturn.logs[2].args.value.toNumber().should.equal(amount);
             txReturn.logs[3].args._amount.toNumber().should.equal(amount);
         });
 
