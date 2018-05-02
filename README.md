@@ -17,7 +17,7 @@ Decentralized Creation and trade of Put Options on ERC20 Tokens.
 ## Setup
 
 The smart contracts are written in [Solidity][solidity] and tested/deployed
-using [Truffle][truffle] version 4.1.0. The new version of Truffle doesn't
+using [Truffle][truffle] version 4.1.7. The new version of Truffle doesn't
 require testrpc to be installed separately so you can just do use the following:
 
 ```bash
